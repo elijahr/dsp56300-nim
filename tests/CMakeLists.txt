@@ -48,15 +48,21 @@ if(DSP56300_NIM_EXECUTABLE AND NOT DSP56300_USE_C_DIST)
     endif()
 
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/t0_dma.nim")
-        add_dsp56300_nim_test(t0_dma t0_dma.nim)
+        add_dsp56300_nim_test(t0_dma t0_dma.nim
+            "${PROJECT_SOURCE_DIR}/src/dsp56300/peripherals/dma.nim"
+        )
     endif()
 
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/t0_esai.nim")
-        add_dsp56300_nim_test(t0_esai t0_esai.nim)
+        add_dsp56300_nim_test(t0_esai t0_esai.nim
+            "${PROJECT_SOURCE_DIR}/src/dsp56300/peripherals/esai.nim"
+        )
     endif()
 
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/t0_hdi08.nim")
-        add_dsp56300_nim_test(t0_hdi08 t0_hdi08.nim)
+        add_dsp56300_nim_test(t0_hdi08 t0_hdi08.nim
+            "${PROJECT_SOURCE_DIR}/src/dsp56300/peripherals/hdi08.nim"
+        )
     endif()
 
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/t0_ir_runner.nim")
@@ -76,11 +82,19 @@ if(DSP56300_NIM_EXECUTABLE AND NOT DSP56300_USE_C_DIST)
     endif()
 
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/t0_peripherals_integration.nim")
-        add_dsp56300_nim_test(t0_peripherals_integration t0_peripherals_integration.nim)
+        add_dsp56300_nim_test(t0_peripherals_integration t0_peripherals_integration.nim
+            "${PROJECT_SOURCE_DIR}/src/dsp56300/peripherals/peripherals56311.nim"
+            "${PROJECT_SOURCE_DIR}/src/dsp56300/peripherals/hdi08.nim"
+            "${PROJECT_SOURCE_DIR}/src/dsp56300/peripherals/esai.nim"
+            "${PROJECT_SOURCE_DIR}/src/dsp56300/peripherals/dma.nim"
+            "${PROJECT_SOURCE_DIR}/src/dsp56300/peripherals/timers.nim"
+        )
     endif()
 
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/t0_timers.nim")
-        add_dsp56300_nim_test(t0_timers t0_timers.nim)
+        add_dsp56300_nim_test(t0_timers t0_timers.nim
+            "${PROJECT_SOURCE_DIR}/src/dsp56300/peripherals/timers.nim"
+        )
     endif()
 
 endif()
