@@ -22,6 +22,16 @@ typedef struct tyObject_Dsp56300Config__Zx4Q3tEbnHV9a3ysL6F0OSA tyObject_Dsp5630
 typedef N_CDECL_PTR(NU32, tyProc__rsZPvG5szl9aaw9cW1RG4FkQ) (void* user_p0, int space_p1, NU32 address_p2);
 typedef N_CDECL_PTR(void, tyProc__KGzLT1UhkvMCXXYSpEgI5w) (void* user_p0, int space_p1, NU32 address_p2, NU32 val_p3);
 N_LIB_PRIVATE N_NOCONV(void, signalHandler)(int sign_p0);
+N_LIB_PRIVATE N_CDECL(void*, dsp56311_peripherals_create)(void);
+N_LIB_PRIVATE N_CDECL(void, dsp56311_peripherals_destroy)(void* p_p0);
+N_LIB_PRIVATE N_CDECL(void, dsp56311_peripherals_reset)(void* p_p0);
+N_LIB_PRIVATE N_CDECL(NU32, dsp56311_peripherals_read_x)(void* p_p0, NU32 addrVal_p1);
+N_LIB_PRIVATE N_CDECL(void, dsp56311_peripherals_write_x)(void* p_p0, NU32 addrVal_p1, NU32 val_p2);
+N_LIB_PRIVATE N_CDECL(NU32, dsp56311_peripherals_read_y)(void* p_p0, NU32 addrVal_p1);
+N_LIB_PRIVATE N_CDECL(void, dsp56311_peripherals_write_y)(void* p_p0, NU32 addrVal_p1, NU32 val_p2);
+N_LIB_PRIVATE N_CDECL(NU8, dsp56311_peripherals_host_read8)(void* p_p0, NU8 regOffset_p1);
+N_LIB_PRIVATE N_CDECL(void, dsp56311_peripherals_host_write8)(void* p_p0, NU8 regOffset_p1, NU8 val_p2);
+N_LIB_PRIVATE N_CDECL(void, dsp56311_peripherals_step)(void* p_p0, NU32 cycles_p1);
 N_LIB_IMPORT N_CDECL(int, dsp56300_runtime_init)(void);
 N_LIB_IMPORT N_CDECL(tyObject_Dsp56300Ctx__4u79aKoJfc9cQaxLYMQPKM0Q*, dsp56300_create)(tyObject_Dsp56300Config__Zx4Q3tEbnHV9a3ysL6F0OSA* config_p0);
 N_LIB_IMPORT N_CDECL(void, dsp56300_destroy)(tyObject_Dsp56300Ctx__4u79aKoJfc9cQaxLYMQPKM0Q* ctx_p0);

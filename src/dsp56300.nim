@@ -184,3 +184,8 @@ proc dsp56300_state_save*(ctx: ptr Dsp56300Ctx, dst: pointer) {.exportc: "dsp563
 proc dsp56300_state_load*(ctx: ptr Dsp56300Ctx, src: pointer) {.exportc: "dsp56300_state_load", cdecl, dynlib.} =
   if ctx != nil and src != nil:
     copyMem(addr(ctx.state), src, sizeof(Dsp56300State))
+
+import dsp56300/peripherals/peripherals56311
+export peripherals56311
+
+

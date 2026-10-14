@@ -52,6 +52,14 @@ typedef struct tyObject_NimSeqV2__tlTLdgCXNWA8pw4BvI4iIw tyObject_NimSeqV2__tlTL
 typedef struct tyObject_NimSeqPayload__pYUVBdz0EtDVjqZZ9btFoBw tyObject_NimSeqPayload__pYUVBdz0EtDVjqZZ9btFoBw;
 typedef struct tyObject_NimSeqPayloadBase__6yKuucjsaHpHcpwa69c8jcQ tyObject_NimSeqPayloadBase__6yKuucjsaHpHcpwa69c8jcQ;
 typedef struct tyObject_IndexDefect__fBIodcxTiyoHUmbOIRbM4w tyObject_IndexDefect__fBIodcxTiyoHUmbOIRbM4w;
+typedef struct tyObject_Peripherals56311colonObjectType___cyAOMhqvqbf1LJF3AQX63g tyObject_Peripherals56311colonObjectType___cyAOMhqvqbf1LJF3AQX63g;
+typedef struct tyObject_Hdi08__mQDqXNbirPZI0SRFwAf8RA tyObject_Hdi08__mQDqXNbirPZI0SRFwAf8RA;
+typedef struct tyObject_DualEsai__6Y23UkFUs0nx0XndFHytZA tyObject_DualEsai__6Y23UkFUs0nx0XndFHytZA;
+typedef struct tyObject_EsaiUnit__nweJxL8yrSIciJh6Yaz55g tyObject_EsaiUnit__nweJxL8yrSIciJh6Yaz55g;
+typedef struct tyObject_DmaController__qpDrr2yVbfuHad8kbpOVHQ tyObject_DmaController__qpDrr2yVbfuHad8kbpOVHQ;
+typedef struct tyObject_DmaChannel__MrI20C9cFaBcWlBGdKCTcOw tyObject_DmaChannel__MrI20C9cFaBcWlBGdKCTcOw;
+typedef struct tyObject_TripleTimerModule__QAbwLIZiwnmqOUQd8z04eA tyObject_TripleTimerModule__QAbwLIZiwnmqOUQd8z04eA;
+typedef struct tyObject_TimerUnit__JUhU7ys48ibpH0hkx8mJcw tyObject_TimerUnit__JUhU7ys48ibpH0hkx8mJcw;
 typedef struct tySequence__9bAGqSvkAaFL9bWjsEPslrFA tySequence__9bAGqSvkAaFL9bWjsEPslrFA;
 typedef struct tySequence__9bAGqSvkAaFL9bWjsEPslrFA_Content tySequence__9bAGqSvkAaFL9bWjsEPslrFA_Content;
 typedef struct tySequence__vGD8GL2RTLvZ40bDlAbiSA tySequence__vGD8GL2RTLvZ40bDlAbiSA;
@@ -219,6 +227,107 @@ struct tyObject_IndexDefect__fBIodcxTiyoHUmbOIRbM4w {
 	tyObject_Defect__BqN81v581jmOWyLfkgmixA Sup;
 };
 typedef N_NOCONV_PTR(void, tyProc__gx1DG571q2UZkCl7Jq3AOg) (int a_p0);
+struct tyObject_Hdi08__mQDqXNbirPZI0SRFwAf8RA {
+	NU32 hcr;
+	NU32 hpcr;
+	NU32 hbar;
+	NU32 horx;
+	NU32 hotx;
+	NU8 icr;
+	NU8 cvr;
+	NU8 ivr;
+	NU8 txHigh;
+	NU8 txMid;
+	NU8 txLow;
+	NU8 rxHigh;
+	NU8 rxMid;
+	NU8 rxLow;
+	NIM_BOOL hrdf;
+	NIM_BOOL htde;
+	NIM_BOOL hcp;
+	NIM_BOOL rxdf;
+	NIM_BOOL txde;
+	NIM_BOOL trdy;
+};
+typedef NU32 tyArray__6qrrEvb5t9aWP0adCtOzLWg[6];
+typedef NU32 tyArray__PPSU5X9aizf5OJq0lL4Og7A[4];
+struct tyObject_EsaiUnit__nweJxL8yrSIciJh6Yaz55g {
+	NU32 saisr;
+	NU32 saicr;
+	NU32 tcr;
+	NU32 tccr;
+	NU32 rcr;
+	NU32 rccr;
+	NU32 tsma;
+	NU32 tsmb;
+	NU32 rsma;
+	NU32 rsmb;
+	NU32 tsr;
+	tyArray__6qrrEvb5t9aWP0adCtOzLWg tx;
+	tyArray__PPSU5X9aizf5OJq0lL4Og7A rx;
+	tyArray__PPSU5X9aizf5OJq0lL4Og7A externalRx;
+	tyArray__6qrrEvb5t9aWP0adCtOzLWg externalTx;
+	NU8 txWritten;
+	NU8 rxRead;
+	NIM_BOOL tde;
+	NIM_BOOL rdf;
+};
+struct tyObject_DualEsai__6Y23UkFUs0nx0XndFHytZA {
+	tyObject_EsaiUnit__nweJxL8yrSIciJh6Yaz55g esai0;
+	tyObject_EsaiUnit__nweJxL8yrSIciJh6Yaz55g esai1;
+	NU32 emuxr;
+};
+struct tyObject_DmaChannel__MrI20C9cFaBcWlBGdKCTcOw {
+	NU32 dsr;
+	NU32 ddr;
+	NU32 dco;
+	NU32 dcr;
+	NU32 dcoPreload;
+	NU32 dcolPreload;
+	NU32 dcohPreload;
+	NU32 curCount1D;
+	NU32 dcolCur;
+	NU32 dcohCur;
+	NIM_BOOL interruptAsserted;
+};
+typedef tyObject_DmaChannel__MrI20C9cFaBcWlBGdKCTcOw tyArray__suzLPckMaqel0EGXvrdRaw[6];
+struct tyObject_DmaController__qpDrr2yVbfuHad8kbpOVHQ {
+	tyArray__suzLPckMaqel0EGXvrdRaw channels;
+	tyArray__PPSU5X9aizf5OJq0lL4Og7A dor;
+	NU32 dstr;
+};
+struct tyObject_TimerUnit__JUhU7ys48ibpH0hkx8mJcw {
+	NU32 tcsr;
+	NU32 tlr;
+	NU32 tcpr;
+	NU32 tcr;
+	NIM_BOOL justEnabled;
+};
+typedef tyObject_TimerUnit__JUhU7ys48ibpH0hkx8mJcw tyArray__RjVSiAaKBvhxaLbVuXyxqQ[3];
+struct tyObject_TripleTimerModule__QAbwLIZiwnmqOUQd8z04eA {
+	NU32 tplr;
+	NU32 tpcr;
+	tyArray__RjVSiAaKBvhxaLbVuXyxqQ timers;
+};
+typedef NU8 tyEnum_DmaMemorySpace__i9b9axBP0oWdqLpfaUIs756w;
+typedef struct {
+N_NIMCALL_PTR(NU32, ClP_0) (tyEnum_DmaMemorySpace__i9b9axBP0oWdqLpfaUIs756w space_p0, NU32 a_p1, void* ClE_0);
+void* ClE_0;
+} tyProc__CcxBIYUZWi2A4qie74VYdQ;
+typedef struct {
+N_NIMCALL_PTR(void, ClP_0) (tyEnum_DmaMemorySpace__i9b9axBP0oWdqLpfaUIs756w space_p0, NU32 a_p1, NU32 val_p2, void* ClE_0);
+void* ClE_0;
+} tyProc__rUa9cJBDRusUh8tArqlhSfQ;
+typedef NIM_BOOL tyArray__oQcYT9cTpIXElOJwwEHsv5g[4];
+struct tyObject_Peripherals56311colonObjectType___cyAOMhqvqbf1LJF3AQX63g {
+	tyObject_Hdi08__mQDqXNbirPZI0SRFwAf8RA hdi08;
+	tyObject_DualEsai__6Y23UkFUs0nx0XndFHytZA esai;
+	tyObject_DmaController__qpDrr2yVbfuHad8kbpOVHQ dma;
+	tyObject_TripleTimerModule__QAbwLIZiwnmqOUQd8z04eA timers;
+	tyProc__CcxBIYUZWi2A4qie74VYdQ readMem;
+	tyProc__rUa9cJBDRusUh8tArqlhSfQ writeMem;
+	tyArray__oQcYT9cTpIXElOJwwEHsv5g extIrq;
+};
 struct tySequence__9bAGqSvkAaFL9bWjsEPslrFA {
   NI len; tySequence__9bAGqSvkAaFL9bWjsEPslrFA_Content* p;
 };
@@ -391,6 +500,7 @@ N_LIB_PRIVATE N_NIMCALL(void, writeToStdErr__system_u2947)(NCSTRING msg_p0, NI l
 static N_INLINE(void, rawWriteString)(FILE* f_p0, NCSTRING s_p1, NI length_p2);
 static N_INLINE(NIM_BOOL*, nimErrorFlag)(void);
 N_LIB_PRIVATE N_NIMCALL(void, registerSignalHandler__system_u3667)(void);
+N_LIB_PRIVATE N_NIMCALL(void, eqdestroy___dsp56300ZperipheralsZperipherals56311_u126)(tyObject_Peripherals56311colonObjectType___cyAOMhqvqbf1LJF3AQX63g* dest_p0);
 N_LIB_PRIVATE N_NIMCALL(void*, alloc0__system_u6301)(tyObject_MemRegion__shMb9cZVR8qIRWk65wjaJLA* allocator_p0, NI size_p1);
 N_LIB_PRIVATE N_NIMCALL(void, eqdestroy___dsp56300Zmemory_u145)(tySequence__9bAGqSvkAaFL9bWjsEPslrFA dest_p0);
 N_LIB_PRIVATE N_NIMCALL(void, newSeq__dsp56300Zmemory_u68)(tySequence__9bAGqSvkAaFL9bWjsEPslrFA* s_p0, NI len_p1);
@@ -3453,6 +3563,19 @@ N_LIB_PRIVATE N_NIMCALL(void, registerSignalHandler__system_u3667)(void) {
 	T6_ = signal(((int)10), signalHandler);
 	T7_ = (tyProc__gx1DG571q2UZkCl7Jq3AOg)0;
 	T7_ = signal(((int)13), SIG_IGN);
+}
+N_LIB_PRIVATE N_NIMCALL(void, GC_ref__dsp56300ZperipheralsZperipherals56311_u204)(tyObject_Peripherals56311colonObjectType___cyAOMhqvqbf1LJF3AQX63g* x_p0) {
+	{
+		if (!!((x_p0 == ((tyObject_Peripherals56311colonObjectType___cyAOMhqvqbf1LJF3AQX63g*) NIM_NIL)))) goto LA3_;
+		nimIncRef(((void*) (x_p0)));
+	}
+LA3_: ;
+}
+N_LIB_PRIVATE N_NIMCALL(void, GC_unref__dsp56300ZperipheralsZperipherals56311_u214)(tyObject_Peripherals56311colonObjectType___cyAOMhqvqbf1LJF3AQX63g* x_p0) {
+	tyObject_Peripherals56311colonObjectType___cyAOMhqvqbf1LJF3AQX63g* y_1;
+	y_1 = NIM_NIL;
+	y_1 = x_p0;
+	eqdestroy___dsp56300ZperipheralsZperipherals56311_u126(y_1);
 }
 N_LIB_PRIVATE N_NIMCALL(void*, alloc0__system_u6301)(tyObject_MemRegion__shMb9cZVR8qIRWk65wjaJLA* allocator_p0, NI size_p1) {
 	void* result;

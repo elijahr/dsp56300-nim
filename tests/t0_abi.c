@@ -121,6 +121,24 @@ int main(void) {
 	free(state_buf);
 	dsp56300_destroy(ctx);
 
+	/* 5. DSP56311 Peripherals Subsystem ABI */
+	dsp56311_peripherals* peri = dsp56311_peripherals_create();
+	assert(peri != NULL);
+	dsp56311_peripherals_reset(peri);
+	assert(dsp56311_peripherals_read_x(peri, 0xFFFF83) == 0);
+
+	dsp56311_peripherals_write_x(peri, 0xFFFF83, 0x000007);
+	assert(dsp56311_peripherals_read_x(peri, 0xFFFF83) == 0x000007);
+
+	dsp56311_peripherals_host_write8(peri, 0x05, 0xDE);
+	dsp56311_peripherals_host_write8(peri, 0x06, 0xAD);
+	dsp56311_peripherals_host_write8(peri, 0x07, 0xBE);
+	assert(dsp56311_peripherals_read_x(peri, 0xFFFFC6) == 0xDEADBE);
+
+	dsp56311_peripherals_step(peri, 10);
+	dsp56311_peripherals_destroy(peri);
+
 	printf("[PASS] All C11 ABI assertions passed successfully.\n");
 	return 0;
 }
+
