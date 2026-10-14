@@ -81,6 +81,14 @@ if(DSP56300_NIM_EXECUTABLE AND NOT DSP56300_USE_C_DIST)
         add_dsp56300_nim_test(t0_kernel_differential t0_kernel_differential.nim)
     endif()
 
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/t0_jit_x86_64.nim")
+        add_dsp56300_nim_test(t0_jit_x86_64 t0_jit_x86_64.nim)
+    endif()
+
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/t0_wasm_v8_exec.nim")
+        add_dsp56300_nim_test(t0_wasm_v8_exec t0_wasm_v8_exec.nim)
+    endif()
+
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/t0_peripherals_integration.nim")
         add_dsp56300_nim_test(t0_peripherals_integration t0_peripherals_integration.nim
             "${PROJECT_SOURCE_DIR}/src/dsp56300/peripherals/peripherals56311.nim"
