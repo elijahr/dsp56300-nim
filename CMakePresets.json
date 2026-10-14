@@ -1,0 +1,102 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "t0",
+      "displayName": "T0 - Unit and ABI test tree",
+      "description": "Configures dsp56300 with tests enabled using the pinned Nim compiler.",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/t0",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "DSP56300_USE_C_DIST": "OFF"
+      }
+    },
+    {
+      "name": "c-dist",
+      "displayName": "C-Dist - Pre-generated C distribution tree",
+      "description": "Configures dsp56300 using the pre-generated C distribution in c_src without needing Nim.",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/c-dist",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "DSP56300_USE_C_DIST": "ON"
+      }
+    },
+    {
+      "name": "full",
+      "displayName": "Full - Complete build tree",
+      "description": "Configures dsp56300 full build.",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/full",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "t0",
+      "displayName": "Build T0 test targets",
+      "configurePreset": "t0",
+      "targets": [
+        "dsp56300_tests"
+      ],
+      "jobs": 0
+    },
+    {
+      "name": "c-dist",
+      "displayName": "Build C distribution ABI test",
+      "configurePreset": "c-dist",
+      "targets": [
+        "t0_abi"
+      ],
+      "jobs": 0
+    },
+    {
+      "name": "full",
+      "displayName": "Build full targets",
+      "configurePreset": "full",
+      "targets": [
+        "dsp56300",
+        "dsp56300_tests"
+      ],
+      "jobs": 0
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "t0",
+      "displayName": "Run T0 test suite",
+      "configurePreset": "t0",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "c-dist",
+      "displayName": "Run C distribution ABI test",
+      "configurePreset": "c-dist",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "full",
+      "displayName": "Run full test suite",
+      "configurePreset": "full",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    }
+  ]
+}

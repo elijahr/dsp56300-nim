@@ -8,6 +8,15 @@
 # The sanitizer build tree, from `cmake -S . -B build-asan`.
 /build-asan/
 
+*.a
+*.o
+*.dylib
+*.so
+tests/t0_*
+!tests/t0_*.nim
+!tests/t0_*.c
+
+
 # This file lists the output of this project only. Keep editor files,
 # operating system files and other personal files in your own global
 # excludes file. Do not add them here.
