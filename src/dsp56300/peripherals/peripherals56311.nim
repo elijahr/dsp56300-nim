@@ -120,13 +120,15 @@ proc step*(self: Peripherals56311, cycles: int = 1) =
 
 proc dsp56311_peripherals_create*(): pointer {.cdecl, exportc: "dsp56311_peripherals_create".} =
   let p = newPeripherals56311()
-  GC_ref(p)
+  when declared(GC_ref):
+    GC_ref(p)
   result = cast[pointer](p)
 
 proc dsp56311_peripherals_destroy*(p: pointer) {.cdecl, exportc: "dsp56311_peripherals_destroy".} =
   if p != nil:
     let peri = cast[Peripherals56311](p)
-    GC_unref(peri)
+    when declared(GC_unref):
+      GC_unref(peri)
 
 proc dsp56311_peripherals_reset*(p: pointer) {.cdecl, exportc: "dsp56311_peripherals_reset".} =
   if p != nil:

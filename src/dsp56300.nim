@@ -6,8 +6,12 @@ import dsp56300/memory
 import dsp56300/alu
 import dsp56300/agu
 import dsp56300/loops
+import "dsp56300/asm.nim" as dspAsm
 
-export state, memory, alu, agu, loops
+export state, memory, alu, agu, loops, dspAsm
+
+
+
 
 type
   Dsp56300Ctx* = object

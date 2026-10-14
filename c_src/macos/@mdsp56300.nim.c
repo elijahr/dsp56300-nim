@@ -104,14 +104,14 @@ struct tyObject_PeripheralHook__QD9cmDz2m21FFlNi2QuZwEg {
 struct tySequence__vGD8GL2RTLvZ40bDlAbiSA_Content { NI cap; tyObject_PeripheralHook__QD9cmDz2m21FFlNi2QuZwEg data[SEQ_DECL_SIZE]; };
 N_LIB_EXPORT N_CDECL(int, dsp56300_runtime_init)(void);
 N_LIB_EXPORT N_CDECL(tyObject_Dsp56300Ctx__4u79aKoJfc9cQaxLYMQPKM0Q*, dsp56300_create)(tyObject_Dsp56300Config__Zx4Q3tEbnHV9a3ysL6F0OSA* config_p0);
-static N_INLINE(tyObject_Dsp56300Ctx__4u79aKoJfc9cQaxLYMQPKM0Q*, create__dsp56300_u19)(NI size_p1);
+static N_INLINE(tyObject_Dsp56300Ctx__4u79aKoJfc9cQaxLYMQPKM0Q*, create__dsp56300_u20)(NI size_p1);
 N_LIB_PRIVATE N_NOCONV(void*, alloc0Impl__system_u1773)(NI size_p0);
 static N_INLINE(NIM_BOOL, nimMulInt)(NI a_p0, NI b_p1, NI* res_p2);
 static N_INLINE(NF, toFloat__system_u1705)(NI i_p0);
 static N_INLINE(NF, abs__system_u4290)(NF x_p0);
 N_LIB_PRIVATE N_NOINLINE(void, raiseOverflow)(void);
 N_LIB_PRIVATE N_NOINLINE(void, raiseRangeErrorI)(NI64 i_p0, NI64 a_p1, NI64 b_p2);
-N_LIB_PRIVATE N_NIMCALL(void, eqsink___dsp56300_u66)(tyObject_Dsp56300Memory__6WLv184TaDpr0TB8Zo9cmvw* dest_p0, tyObject_Dsp56300Memory__6WLv184TaDpr0TB8Zo9cmvw* src_p1);
+N_LIB_PRIVATE N_NIMCALL(void, eqsink___dsp56300_u67)(tyObject_Dsp56300Memory__6WLv184TaDpr0TB8Zo9cmvw* dest_p0, tyObject_Dsp56300Memory__6WLv184TaDpr0TB8Zo9cmvw* src_p1);
 N_LIB_PRIVATE N_NIMCALL(void, initMemory__dsp56300Zmemory_u45)(tyObject_Dsp56300Memory__6WLv184TaDpr0TB8Zo9cmvw* Result);
 static N_INLINE(void, nimZeroMem)(void* p_p0, NI size_p1);
 static N_INLINE(void, nimSetMem__system_u2179)(void* a_p0, int v_p1, NI size_p2);
@@ -215,7 +215,7 @@ LA8_: ;
 LA3_: ;
 	return result;
 }
-static N_INLINE(tyObject_Dsp56300Ctx__4u79aKoJfc9cQaxLYMQPKM0Q*, create__dsp56300_u19)(NI size_p1) {
+static N_INLINE(tyObject_Dsp56300Ctx__4u79aKoJfc9cQaxLYMQPKM0Q*, create__dsp56300_u20)(NI size_p1) {
 	tyObject_Dsp56300Ctx__4u79aKoJfc9cQaxLYMQPKM0Q* result;
 	NI TM__AMqVrd9bWj4Qe8wFScklZ9cw_2;
 	void* T1_;
@@ -247,10 +247,10 @@ N_LIB_EXPORT N_CDECL(tyObject_Dsp56300Ctx__4u79aKoJfc9cQaxLYMQPKM0Q*, dsp56300_c
 	NU32 omrInit_1;
 {	colontmpD_ = (NU32)0;
 	colontmpD__2 = (NU32)0;
-	ctx_1 = create__dsp56300_u19(((NI)1));
+	ctx_1 = create__dsp56300_u20(((NI)1));
 	nimZeroMem((void*)(&T1_), sizeof(tyObject_Dsp56300Memory__6WLv184TaDpr0TB8Zo9cmvw));
 	initMemory__dsp56300Zmemory_u45((&T1_));
-	eqsink___dsp56300_u66((&(*ctx_1).mem), (&T1_));
+	eqsink___dsp56300_u67((&(*ctx_1).mem), (&T1_));
 	{
 		if (!!((config_p0 == ((tyObject_Dsp56300Config__Zx4Q3tEbnHV9a3ysL6F0OSA*) NIM_NIL)))) goto LA4_;
 		colontmpD_ = (*config_p0).omrInit;

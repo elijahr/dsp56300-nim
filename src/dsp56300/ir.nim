@@ -226,7 +226,13 @@ proc liftBasicBlock*(state: DspState, startPc: uint32, maxWords: int = 64): IrBa
         addrMode: inst.parallel.uMode
       ))
     of ParallelMoveKind.pmXMem, ParallelMoveKind.pmYMem:
-      if not inst.parallel.isWrite:
+      if inst.parallel.memMode == AddrMode.amImmediate:
+        result.ops.add(MicroOp(
+          kind: IrOpKind.irLoadImm,
+          dst: inst.parallel.memReg,
+          imm: inst.parallel.memAddr
+        ))
+      elif not inst.parallel.isWrite:
         result.ops.add(MicroOp(
           kind: IrOpKind.irLoadMem,
           dst: inst.parallel.memReg,
@@ -244,6 +250,7 @@ proc liftBasicBlock*(state: DspState, startPc: uint32, maxWords: int = 64): IrBa
           rNum: inst.parallel.memRNum,
           imm: inst.parallel.memAddr
         ))
+
       if inst.parallel.memMode in {AddrMode.amPostInc, AddrMode.amPostDec, AddrMode.amPostIncN, AddrMode.amPostDecN}:
         result.ops.add(MicroOp(
           kind: IrOpKind.irAguUpdate,

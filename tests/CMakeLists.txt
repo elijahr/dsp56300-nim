@@ -105,6 +105,15 @@ if(DSP56300_NIM_EXECUTABLE AND NOT DSP56300_USE_C_DIST)
         )
     endif()
 
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/t0_asm_roundtrip.nim")
+        add_dsp56300_nim_test(t0_asm_roundtrip t0_asm_roundtrip.nim
+            "${PROJECT_SOURCE_DIR}/src/dsp56300/asm.nim"
+            "${PROJECT_SOURCE_DIR}/src/dsp56300/decode.nim"
+            "${PROJECT_SOURCE_DIR}/src/dsp56300/ir.nim"
+            "${PROJECT_SOURCE_DIR}/src/dsp56300/runner.nim"
+        )
+    endif()
+
 endif()
 
 add_custom_target(dsp56300_tests ALL DEPENDS ${ALL_TEST_TARGETS})

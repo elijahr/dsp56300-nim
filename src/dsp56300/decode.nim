@@ -208,7 +208,9 @@ proc decodeParallelMove*(moveWord: uint16): ParallelMove =
     if isEa:
       let mmm = (moveWord shr 3) and 7
       let rrr = moveWord and 7
-      let mode = decodeAddrMode(uint8(mmm))
+      let mode = if mmm == 0b110 and rrr == 0b100: AddrMode.amImmediate else: decodeAddrMode(uint8(mmm))
+
+
       if s == 0:
         return ParallelMove(
           kind: ParallelMoveKind.pmXMem,
@@ -386,6 +388,12 @@ proc decodeInstruction*(words: openArray[uint32], pc: uint32): Instruction =
     inst.targetAddr = w0 and 0x0FFF'u32
     return inst
 
+  # JSR short: 0000 1101 0000 aaaa aaaaaaaa -> 0x0D0000 .. 0x0D0FFF
+  if (w0 and 0xFFF000'u32) == 0x0D0000'u32:
+    inst.ctrlOp = ControlOp.ctrlJsr
+    inst.targetAddr = w0 and 0x0FFF'u32
+    return inst
+
   # Jcc short: 0000 1110 CCCC aaaa aaaaaaaa
   if (w0 and 0xFF0000'u32) == 0x0E0000'u32:
     inst.ctrlOp = ControlOp.ctrlJcc
@@ -411,6 +419,19 @@ proc decodeInstruction*(words: openArray[uint32], pc: uint32): Instruction =
       inst.words = 2
       inst.targetAddr = w1
     return inst
+
+  # JSR ea: 0000 1011 11MM MRRR 1000 0000
+  if (w0 and 0xFFC0FF'u32) == 0x0BC080'u32:
+    inst.ctrlOp = ControlOp.ctrlJsr
+    let mmm = (w0 shr 11) and 7
+    let rrr = (w0 shr 8) and 7
+    inst.mode = decodeAddrMode(uint8(mmm))
+    inst.rNum = uint8(rrr)
+    if inst.mode == AddrMode.amAbsolute:
+      inst.words = 2
+      inst.targetAddr = w1
+    return inst
+
 
   # Jcc ea: 0000 1010 11MM MRRR 1010 CCCC
   if (w0 and 0xFFC0F0'u32) == 0x0AC0A0'u32:
@@ -512,6 +533,11 @@ proc decodeInstruction*(words: openArray[uint32], pc: uint32): Instruction =
   let opcode = uint8(w0 and 0xFF)
 
   inst.parallel = decodeParallelMove(moveField)
+  if inst.parallel.kind in {ParallelMoveKind.pmXMem, ParallelMoveKind.pmYMem}:
+    if inst.parallel.memMode in {AddrMode.amAbsolute, AddrMode.amImmediate}:
+      inst.words = 2
+      inst.parallel.memAddr = w1
+
 
   # Check Opcode: Multiply vs Non-Multiply
   if (opcode and 0x80) != 0:

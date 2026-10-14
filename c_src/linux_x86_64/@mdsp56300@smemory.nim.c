@@ -121,7 +121,7 @@ static N_INLINE(void, nimCopyMem)(void* dest_p0, void* source_p1, NI size_p2) {
 	T1_ = (void*)0;
 	T1_ = memcpy(dest_p0, source_p1, ((size_t) (size_p2)));
 }
-N_LIB_PRIVATE N_NIMCALL(void, eqsink___dsp56300_u66)(tyObject_Dsp56300Memory__6WLv184TaDpr0TB8Zo9cmvw* dest_p0, tyObject_Dsp56300Memory__6WLv184TaDpr0TB8Zo9cmvw* src_p1) {
+N_LIB_PRIVATE N_NIMCALL(void, eqsink___dsp56300_u67)(tyObject_Dsp56300Memory__6WLv184TaDpr0TB8Zo9cmvw* dest_p0, tyObject_Dsp56300Memory__6WLv184TaDpr0TB8Zo9cmvw* src_p1) {
 	if ((*dest_p0).pRam.p != (*src_p1).pRam.p) {	eqdestroy___dsp56300Zmemory_u145((*dest_p0).pRam);
 	}
 (*dest_p0).pRam.len = (*src_p1).pRam.len; (*dest_p0).pRam.p = (*src_p1).pRam.p;
