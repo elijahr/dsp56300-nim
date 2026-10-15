@@ -133,3 +133,84 @@ suite "DSP56300 Idiomatic Nim Compiler Macro":
     s3.xRam[0x10'u32] = 7'u32
     runProg(s3)
     check s3.xRam[0x20'u32] == 9999'u32
+
+  test "Compile full modular synth kernel in idiomatic Nim":
+    const prog = compileDsp56300:
+      while true:
+        if (xMem[HDI08_HSR_ADDR] and 1) != 0:
+          let cmd = xMem[HDI08_HORX_ADDR]
+          let opcode = (cmd shr 16) and 0xFF
+          let payload = (cmd shl 8) and 0xFFFFFF
+          case opcode
+          of 1:
+            let raw16 = cmd and 0xFFFF
+            if raw16 != 0:
+              if raw16 < 128:
+                xMem[X_PITCH_INC] = yMem[0x80 + raw16]
+              else:
+                xMem[X_PITCH_INC] = payload
+            xMem[X_GATE] = 1
+          of 2:
+            xMem[X_GATE] = 0
+          of 3:
+            xMem[X_CUTOFF] = payload
+          of 4:
+            xMem[X_RESONANCE] = payload
+          of 5:
+            xMem[X_WAVEFORM] = cmd and 3
+          of 6:
+            xMem[X_ATTACK] = payload
+          of 7:
+            xMem[X_RELEASE] = payload
+          of 8:
+            xMem[X_MASTER_LEVEL] = payload
+
+        # Phase accumulator
+        let phase = (yMem[Y_OSC_PHASE] + xMem[X_PITCH_INC]) and 0xFFFFFF
+        yMem[Y_OSC_PHASE] = phase
+
+        # Waveform
+        case xMem[X_WAVEFORM]
+        of 0:
+          yMem[Y_PREV_SAMPLE] = phase
+        of 1:
+          if phase >= 0:
+            yMem[Y_PREV_SAMPLE] = 0x600000
+          else:
+            yMem[Y_PREV_SAMPLE] = 0xA00000
+        of 2:
+          yMem[Y_PREV_SAMPLE] = asl(abs24(phase) - 0x400000)
+        else:
+          let p2 = mpy(phase, phase)
+          let p3 = mpy(phase, p2)
+          yMem[Y_PREV_SAMPLE] = asl(phase - p3)
+
+        # Envelope
+        if xMem[X_GATE] != 0:
+          let env = yMem[Y_ENV_LEVEL] + xMem[X_ATTACK]
+          if env >= 0x7FFFFF:
+            yMem[Y_ENV_LEVEL] = 0x7FFFFF
+          else:
+            yMem[Y_ENV_LEVEL] = env
+        else:
+          if yMem[Y_ENV_LEVEL] >= xMem[X_RELEASE]:
+            yMem[Y_ENV_LEVEL] = yMem[Y_ENV_LEVEL] - xMem[X_RELEASE]
+          else:
+            yMem[Y_ENV_LEVEL] = 0
+
+        # Filter
+        let cut = xMem[X_CUTOFF]
+        let fEff = asr(mpy(cut, cut))
+        let q = 0x7FFFFF - xMem[X_RESONANCE]
+        let high = yMem[Y_PREV_SAMPLE] - yMem[Y_FILT_LOW] - mpy(q, yMem[Y_FILT_BAND])
+        yMem[Y_FILT_BAND] = mac(fEff, high, yMem[Y_FILT_BAND])
+        yMem[Y_FILT_LOW] = mac(fEff, yMem[Y_FILT_BAND], yMem[Y_FILT_LOW])
+
+        # VCA
+        let vca = mpy(yMem[Y_FILT_LOW], yMem[Y_ENV_LEVEL])
+        let scaled = mpy(vca, xMem[X_MASTER_LEVEL])
+        xMem[ESAI_TX0_ADDR] = scaled
+        xMem[X_AUDIO_OUT] = scaled
+
+    check prog.len > 0
+    check prog.len < 1024
