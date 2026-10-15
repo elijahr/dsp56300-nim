@@ -21,7 +21,7 @@ suite "DSP56300 Idiomatic Nim Compiler Macro":
     for i, w in prog:
       s.pRam[uint32(i)] = w
 
-    let blk = liftBasicBlock(s, 0'u32, maxWords = uint32(prog.len))
+    let blk = liftBasicBlock(s, 0'u32, maxWords = prog.len)
     let cycles = runBlock(s, blk)
     check cycles > 0
 
