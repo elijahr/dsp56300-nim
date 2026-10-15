@@ -227,6 +227,17 @@ proc runBlock*(state: var DspState, blk: IrBasicBlock): uint32 =
         else:
           state.setAccA(acc)
 
+        # Update condition code flags in SR (Z and N)
+        if acc == 0:
+          state.sr = state.sr or SR_Z
+        else:
+          state.sr = state.sr and (not SR_Z)
+
+        if acc < 0:
+          state.sr = state.sr or SR_N
+        else:
+          state.sr = state.sr and (not SR_N)
+
       of IrOpKind.irBranch:
         state.pc = op.imm
         cycles += 2

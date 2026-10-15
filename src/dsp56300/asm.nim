@@ -111,6 +111,9 @@ func asmJmp*(targetAddr: uint32): uint32 {.inline.} =
 func asmJsr*(targetAddr: uint32): uint32 {.inline.} =
   0x0D0000'u32 or (targetAddr and 0x0FFF'u32)
 
+func asmJcc*(cond: ConditionCode, targetAddr: uint32): uint32 {.inline.} =
+  0x0E0000'u32 or ((uint32(ord(cond)) and 0x0F'u32) shl 12) or (targetAddr and 0x0FFF'u32)
+
 # ------------------------------------------------------------- Hardware Loops
 
 func asmDoImm*(count: uint16, endAddr: uint32): array[2, uint32] {.inline.} =

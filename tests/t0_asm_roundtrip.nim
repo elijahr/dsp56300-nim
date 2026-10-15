@@ -37,6 +37,12 @@ suite "DSP56300 Assembler Round-Trip & Execution":
     check jsrInst.ctrlOp == ControlOp.ctrlJsr
     check jsrInst.targetAddr == 0x220
 
+    # Jcc short
+    let jccInst = decodeInstruction([asmJcc(ConditionCode.ccEQ, 0x350)], 0)
+    check jccInst.ctrlOp == ControlOp.ctrlJcc
+    check jccInst.cond == ConditionCode.ccEQ
+    check jccInst.targetAddr == 0x350
+
   test "Round-trip Data ALU Encodings":
     # CLR A and CLR B
     let clrA = decodeInstruction([asmClr(RegId.regA)], 0)
