@@ -4,7 +4,7 @@
 ## into 24-bit DSP56300 machine instructions and runs them on the emulator.
 
 import unittest
-import dsp56300/[state, memory, decode_types, runner]
+import dsp56300/[state, memory, decode_types, runner, ir]
 import dsp56300/nim_compiler
 
 suite "DSP56300 Idiomatic Nim Compiler Macro":

@@ -7,9 +7,9 @@
 ##   - `while <cond>:` (including `while true:`)
 ##   - `if <cond>: ... elif <cond>: ... else: ...`
 ##   - Memory accesses: `xMem[addr]`, `yMem[addr]` (read & write)
-##   - Arithmetic & Logic: `+`, `-`, `and`, `or`, `xor`, `shl`, `shr`, `asl`, `asr`, `mpy`, `mac`, `abs`
+##   - Arithmetic & Logic: `+`, `-`, `*`, `and`, `or`, `xor`, `shl`, `shr`, `asl`, `asr`, `mpy`, `mac`, `abs`
 ##   - Constant & Symbol Resolution
-##   - Variable scoping & register allocation
+##   - Robust scratch-frame variable storage in Y-RAM
 
 import std/[macros, tables, strutils]
 import dsp56300/decode_types
@@ -141,7 +141,6 @@ type
   CompilerContext = object
     kb: KernelBuilder
     labelId: int
-    varRegs: Table[string, RegId]
     varMem: Table[string, uint32]
     nextScratchAddr: uint32
 
@@ -280,7 +279,6 @@ proc compileCondition(ctx: var CompilerContext, condNode: NimNode, jumpIfFalseLa
       ctx.kb.addWord(asmSub(RegId.regX0, RegId.regA))
       ctx.kb.addJcc(ConditionCode.ccPL, jumpIfFalseLabel)
     of "<=":
-      # Jump if false when left > right
       compileExpr(ctx, right, RegId.regA)
       let (okL, valL) = resolveConstVal(left)
       if okL:
@@ -290,7 +288,6 @@ proc compileCondition(ctx: var CompilerContext, condNode: NimNode, jumpIfFalseLa
       ctx.kb.addWord(asmSub(RegId.regX0, RegId.regA))
       ctx.kb.addJcc(ConditionCode.ccMI, jumpIfFalseLabel)
     of ">=":
-      # Jump if false when left < right
       compileExpr(ctx, left, RegId.regA)
       let (okR, valR) = resolveConstVal(right)
       if okR:
@@ -330,15 +327,10 @@ proc compileExpr(ctx: var CompilerContext, n: NimNode, dstReg: RegId) =
         ctx.kb.addWord(asmMoveImmShort(dstReg, uint8(val)))
       else:
         ctx.kb.addWords2(asmMoveImm24(dstReg, val))
-    elif ctx.varRegs.hasKey(name):
-      let src = ctx.varRegs[name]
-      if src != dstReg:
-        ctx.kb.addWord(asmMoveReg(src, dstReg))
     elif ctx.varMem.hasKey(name):
       let addr16 = ctx.varMem[name]
       ctx.kb.addWords2(asmMoveMemAbs(MemSpace.memY, isWrite = false, reg = dstReg, addr16 = addr16))
     else:
-      # Default fallback: check if register name
       case name.toLowerAscii()
       of "a": ctx.kb.addWord(asmMoveReg(RegId.regA, dstReg))
       of "b": ctx.kb.addWord(asmMoveReg(RegId.regB, dstReg))
@@ -359,7 +351,6 @@ proc compileExpr(ctx: var CompilerContext, n: NimNode, dstReg: RegId) =
     if isConstAddr:
       ctx.kb.addWords2(asmMoveMemAbs(space, isWrite = false, reg = dstReg, addr16 = addrVal))
     else:
-      # Evaluate address into A, move to R0
       compileExpr(ctx, addrNode, RegId.regA)
       ctx.kb.addWord(asmMoveReg(RegId.regA, RegId.regR0))
       ctx.kb.addWord(asmMoveMemInd(space, isWrite = false, reg = dstReg, rNum = 0))
@@ -515,42 +506,30 @@ proc compileNode(ctx: var CompilerContext, n: NimNode) =
         compileExpr(ctx, expr, RegId.regA)
         ctx.kb.addWords2(asmMoveMemAbs(space, isWrite = true, reg = RegId.regA, addr16 = addrVal))
       else:
-        # Complex address
-        compileExpr(ctx, expr, RegId.regX1)
+        # Complex address: evaluate expr to A, spill to scratch 0x2F, compute addr to R0, reload A
+        compileExpr(ctx, expr, RegId.regA)
+        ctx.kb.addWords2(asmMoveMemAbs(MemSpace.memY, isWrite = true, reg = RegId.regA, addr16 = 0x002F'u32))
         compileExpr(ctx, addrNode, RegId.regA)
         ctx.kb.addWord(asmMoveReg(RegId.regA, RegId.regR0))
-        ctx.kb.addWord(asmMoveReg(RegId.regX1, RegId.regA))
+        ctx.kb.addWords2(asmMoveMemAbs(MemSpace.memY, isWrite = false, reg = RegId.regA, addr16 = 0x002F'u32))
         ctx.kb.addWord(asmMoveMemInd(space, isWrite = true, reg = RegId.regA, rNum = 0))
 
     elif target.kind in {nnkIdent, nnkSym}:
       let varName = target.strVal
-      if ctx.varRegs.hasKey(varName):
-        let reg = ctx.varRegs[varName]
-        compileExpr(ctx, expr, reg)
-      elif ctx.varMem.hasKey(varName):
-        let addr16 = ctx.varMem[varName]
-        compileExpr(ctx, expr, RegId.regA)
-        ctx.kb.addWords2(asmMoveMemAbs(MemSpace.memY, isWrite = true, reg = RegId.regA, addr16 = addr16))
+      if not ctx.varMem.hasKey(varName):
+        ctx.varMem[varName] = ctx.nextScratchAddr
+        ctx.nextScratchAddr += 1
+      compileExpr(ctx, expr, RegId.regA)
+      ctx.kb.addWords2(asmMoveMemAbs(MemSpace.memY, isWrite = true, reg = RegId.regA, addr16 = ctx.varMem[varName]))
 
   of nnkLetSection, nnkVarSection:
     for identDefs in n:
-      let varName = identDefs[0].strVal
-      let expr = identDefs[2]
-
-      # Assign available physical register or scratch memory address
-      let assignedReg = case ctx.varRegs.len
-      of 0: RegId.regX1
-      of 1: RegId.regY1
-      of 2: RegId.regB
-      else: RegId.regNone
-
-      if assignedReg != RegId.regNone:
-        ctx.varRegs[varName] = assignedReg
-        if expr.kind != nnkEmpty:
-          compileExpr(ctx, expr, assignedReg)
-      else:
-        ctx.varMem[varName] = ctx.nextScratchAddr
-        ctx.nextScratchAddr += 1
+      for i in 0 ..< identDefs.len - 2:
+        let varName = identDefs[i].strVal
+        if not ctx.varMem.hasKey(varName):
+          ctx.varMem[varName] = ctx.nextScratchAddr
+          ctx.nextScratchAddr += 1
+        let expr = identDefs[^1]
         if expr.kind != nnkEmpty:
           compileExpr(ctx, expr, RegId.regA)
           ctx.kb.addWords2(asmMoveMemAbs(MemSpace.memY, isWrite = true, reg = RegId.regA, addr16 = ctx.varMem[varName]))
@@ -562,7 +541,6 @@ proc assembleFromAst*(body: NimNode): seq[uint32] =
   var ctx: CompilerContext
   ctx.kb = initKernelBuilder()
   ctx.labelId = 0
-  ctx.varRegs = initTable[string, RegId]()
   ctx.varMem = initTable[string, uint32]()
   ctx.nextScratchAddr = 0x0030'u32
 
