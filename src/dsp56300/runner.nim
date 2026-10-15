@@ -196,6 +196,12 @@ proc runBlock*(state: var DspState, blk: IrBasicBlock): uint32 =
         of AluOp.opClr:
           acc = 0
 
+        of AluOp.opTfr:
+          acc = if op.src1 == RegId.regA: state.getAccA() else: state.getAccB()
+
+        of AluOp.opTst:
+          discard
+
         of AluOp.opNeg:
           acc = signExtend56(cast[uint64](-acc))
 

@@ -203,6 +203,11 @@ func asmTfr*(srcAcc, dstAcc: RegId): uint32 {.inline.} =
   # jjj = 000, kkk = 001 -> 0x01 or 0x09
   0x000001'u32 or (d shl 3)
 
+func asmTst*(dstAcc: RegId): uint32 {.inline.} =
+  let d = if dstAcc == RegId.regB: 1'u32 else: 0'u32
+  # jjj = 000, kkk = 011 -> 0x03 or 0x0B
+  0x000003'u32 or (d shl 3)
+
 func asmRnd*(dstAcc: RegId): uint32 {.inline.} =
   let d = if dstAcc == RegId.regB: 1'u32 else: 0'u32
   # jjj = 001, kkk = 001 -> 0x11 or 0x19
