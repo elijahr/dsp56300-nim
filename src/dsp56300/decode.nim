@@ -272,25 +272,8 @@ proc decodeParallelMove*(moveWord: uint16): ParallelMove =
       let rrr = loByte and 7
       return ParallelMove(kind: ParallelMoveKind.pmAddrUpdate, uMode: decodeXYDualMode(mm), uReg: rrr)
 
-  # Check Immediate Short Move: 0 0 1 d d d d d i i i i i i i i
-  # where ddddd != 00000
-  if (moveWord and 0xE000'u16) == 0x2000'u16:
-    let d5 = (moveWord shr 8) and 0x1F
-    let imm = moveWord and 0xFF
-    if d5 != 0:
-      let dst = decodeReg5_1(uint8(d5))
-      return ParallelMove(kind: ParallelMoveKind.pmImmediateShort, immShort: uint32(imm), immDst: dst)
-    else:
-      # d5 == 0: Register to register move: 0 0 1 0 0 0 e e e e e d d d d d
-      let e5 = (moveWord shr 5) and 0x1F
-      let dReg5 = moveWord and 0x1F
-      return ParallelMove(
-        kind: ParallelMoveKind.pmRegToReg,
-        regSrc: decodeReg5_1(uint8(e5)),
-        regDst: decodeReg5_1(uint8(dReg5))
-      )
-
-  # Check Register-to-Register where top 6 bits are 001000:
+  # Check Register-to-Register where top 6 bits are 001000 (Table 12-16):
+  # 0 0 1 0 0 0 e e e e e d d d d d
   if (moveWord and 0xFC00'u16) == 0x2000'u16:
     let e5 = (moveWord shr 5) and 0x1F
     let dReg5 = moveWord and 0x1F
@@ -299,6 +282,13 @@ proc decodeParallelMove*(moveWord: uint16): ParallelMove =
       regSrc: decodeReg5_1(uint8(e5)),
       regDst: decodeReg5_1(uint8(dReg5))
     )
+
+  # Check Immediate Short Move: 0 0 1 d d d d d i i i i i i i i (where ddddd != 00000)
+  if (moveWord and 0xE000'u16) == 0x2000'u16:
+    let d5 = (moveWord shr 8) and 0x1F
+    let imm = moveWord and 0xFF
+    let dst = decodeReg5_1(uint8(d5))
+    return ParallelMove(kind: ParallelMoveKind.pmImmediateShort, immShort: uint32(imm), immDst: dst)
 
   # Check X:R and R:Y moves (bits 15..12 = 0001)
   if (moveWord and 0xF000'u16) == 0x1000'u16:
