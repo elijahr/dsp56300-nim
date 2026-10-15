@@ -334,6 +334,12 @@ proc compileExpr(ctx: var CompilerContext, n: NimNode, dstReg: RegId) =
       case name.toLowerAscii()
       of "a": ctx.kb.addWord(asmMoveReg(RegId.regA, dstReg))
       of "b": ctx.kb.addWord(asmMoveReg(RegId.regB, dstReg))
+      of "a0": ctx.kb.addWord(asmMoveReg(RegId.regA0, dstReg))
+      of "a1": ctx.kb.addWord(asmMoveReg(RegId.regA1, dstReg))
+      of "a2": ctx.kb.addWord(asmMoveReg(RegId.regA2, dstReg))
+      of "b0": ctx.kb.addWord(asmMoveReg(RegId.regB0, dstReg))
+      of "b1": ctx.kb.addWord(asmMoveReg(RegId.regB1, dstReg))
+      of "b2": ctx.kb.addWord(asmMoveReg(RegId.regB2, dstReg))
       of "x0": ctx.kb.addWord(asmMoveReg(RegId.regX0, dstReg))
       of "x1": ctx.kb.addWord(asmMoveReg(RegId.regX1, dstReg))
       of "y0": ctx.kb.addWord(asmMoveReg(RegId.regY0, dstReg))
@@ -387,7 +393,11 @@ proc compileExpr(ctx: var CompilerContext, n: NimNode, dstReg: RegId) =
     of "*":
       compileExpr(ctx, left, RegId.regX0)
       compileExpr(ctx, right, RegId.regY0)
-      ctx.kb.addWord(asmMpy(RegId.regX0, RegId.regY0, dstReg))
+      if dstReg in {RegId.regA, RegId.regB}:
+        ctx.kb.addWord(asmMpy(RegId.regX0, RegId.regY0, dstReg))
+      else:
+        ctx.kb.addWord(asmMpy(RegId.regX0, RegId.regY0, RegId.regA))
+        ctx.kb.addWord(asmMoveReg(RegId.regA, dstReg))
     of "and":
       let (okR, valR) = resolveConstVal(right)
       if okR:
@@ -414,43 +424,62 @@ proc compileExpr(ctx: var CompilerContext, n: NimNode, dstReg: RegId) =
           ctx.kb.addWord(asmMoveReg(RegId.regB, dstReg))
     of "shl":
       let (okR, valR) = resolveConstVal(right)
-      compileExpr(ctx, left, dstReg)
+      let accDst = if dstReg in {RegId.regA, RegId.regB}: dstReg else: RegId.regA
+      compileExpr(ctx, left, accDst)
       let shifts = if okR: int(valR) else: 1
       for _ in 0 ..< shifts:
-        ctx.kb.addWord(asmAsl(dstReg))
+        ctx.kb.addWord(asmAsl(accDst))
+      if dstReg != accDst:
+        ctx.kb.addWord(asmMoveReg(accDst, dstReg))
     of "shr":
       let (okR, valR) = resolveConstVal(right)
-      compileExpr(ctx, left, dstReg)
+      let accDst = if dstReg in {RegId.regA, RegId.regB}: dstReg else: RegId.regA
+      compileExpr(ctx, left, accDst)
       let shifts = if okR: int(valR) else: 1
       for _ in 0 ..< shifts:
-        ctx.kb.addWord(asmAsr(dstReg))
+        ctx.kb.addWord(asmAsr(accDst))
+      if dstReg != accDst:
+        ctx.kb.addWord(asmMoveReg(accDst, dstReg))
     else:
       discard
 
   of nnkCall:
     let fn = n[0].strVal
+    let accDst = if dstReg in {RegId.regA, RegId.regB}: dstReg else: RegId.regA
     case fn
     of "mpy":
       compileExpr(ctx, n[1], RegId.regX0)
       compileExpr(ctx, n[2], RegId.regY0)
-      ctx.kb.addWord(asmMpy(RegId.regX0, RegId.regY0, dstReg))
+      ctx.kb.addWord(asmMpy(RegId.regX0, RegId.regY0, accDst))
+      if dstReg != accDst:
+        ctx.kb.addWord(asmMoveReg(accDst, dstReg))
     of "mac":
-      compileExpr(ctx, n[3], dstReg)
+      compileExpr(ctx, n[3], accDst)
       compileExpr(ctx, n[1], RegId.regX0)
       compileExpr(ctx, n[2], RegId.regY0)
-      ctx.kb.addWord(asmMac(RegId.regX0, RegId.regY0, dstReg))
+      ctx.kb.addWord(asmMac(RegId.regX0, RegId.regY0, accDst))
+      if dstReg != accDst:
+        ctx.kb.addWord(asmMoveReg(accDst, dstReg))
     of "abs", "abs24":
-      compileExpr(ctx, n[1], dstReg)
-      ctx.kb.addWord(asmAbs(dstReg))
+      compileExpr(ctx, n[1], accDst)
+      ctx.kb.addWord(asmAbs(accDst))
+      if dstReg != accDst:
+        ctx.kb.addWord(asmMoveReg(accDst, dstReg))
     of "asl":
-      compileExpr(ctx, n[1], dstReg)
-      ctx.kb.addWord(asmAsl(dstReg))
+      compileExpr(ctx, n[1], accDst)
+      ctx.kb.addWord(asmAsl(accDst))
+      if dstReg != accDst:
+        ctx.kb.addWord(asmMoveReg(accDst, dstReg))
     of "asr":
-      compileExpr(ctx, n[1], dstReg)
-      ctx.kb.addWord(asmAsr(dstReg))
+      compileExpr(ctx, n[1], accDst)
+      ctx.kb.addWord(asmAsr(accDst))
+      if dstReg != accDst:
+        ctx.kb.addWord(asmMoveReg(accDst, dstReg))
     of "lsr":
-      compileExpr(ctx, n[1], dstReg)
-      ctx.kb.addWord(asmLsr(dstReg))
+      compileExpr(ctx, n[1], accDst)
+      ctx.kb.addWord(asmLsr(accDst))
+      if dstReg != accDst:
+        ctx.kb.addWord(asmMoveReg(accDst, dstReg))
     else:
       discard
 
