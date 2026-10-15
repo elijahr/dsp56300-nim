@@ -448,8 +448,19 @@ proc compileExpr(ctx: var CompilerContext, n: NimNode, dstReg: RegId) =
     of "asr":
       compileExpr(ctx, n[1], dstReg)
       ctx.kb.addWord(asmAsr(dstReg))
+    of "lsr":
+      compileExpr(ctx, n[1], dstReg)
+      ctx.kb.addWord(asmLsr(dstReg))
     else:
       discard
+
+  of nnkPrefix:
+    let op = n[0].strVal
+    if op == "-":
+      compileExpr(ctx, n[1], dstReg)
+      ctx.kb.addWord(asmNeg(dstReg))
+    else:
+      compileExpr(ctx, n[1], dstReg)
 
   of nnkPar:
     compileExpr(ctx, n[0], dstReg)
@@ -533,6 +544,35 @@ proc compileNode(ctx: var CompilerContext, n: NimNode) =
         if expr.kind != nnkEmpty:
           compileExpr(ctx, expr, RegId.regA)
           ctx.kb.addWords2(asmMoveMemAbs(MemSpace.memY, isWrite = true, reg = RegId.regA, addr16 = ctx.varMem[varName]))
+
+  of nnkCaseStmt:
+    let selector = n[0]
+    let endLabel = genLabel(ctx, "case_end")
+    # Evaluate selector into B
+    compileExpr(ctx, selector, RegId.regB)
+
+    for i in 1 ..< n.len:
+      let branch = n[i]
+      if branch.kind == nnkOfBranch:
+        let matchLabel = genLabel(ctx, "case_match")
+        let nextBranchLabel = genLabel(ctx, "case_next")
+        for j in 0 ..< branch.len - 1:
+          let valNode = branch[j]
+          let (isConst, val) = resolveConstVal(valNode)
+          if isConst:
+            ctx.kb.addWords2(asmMoveImm24(RegId.regX0, val))
+          else:
+            compileExpr(ctx, valNode, RegId.regX0)
+          ctx.kb.addWord(asmCmp(RegId.regX0, RegId.regB))
+          ctx.kb.addJcc(ConditionCode.ccEQ, matchLabel)
+        ctx.kb.addJmp(nextBranchLabel)
+        ctx.kb.addLabel(matchLabel)
+        compileNode(ctx, branch[^1])
+        ctx.kb.addJmp(endLabel)
+        ctx.kb.addLabel(nextBranchLabel)
+      elif branch.kind == nnkElse:
+        compileNode(ctx, branch[0])
+    ctx.kb.addLabel(endLabel)
 
   else:
     discard

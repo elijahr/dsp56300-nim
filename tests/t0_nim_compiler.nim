@@ -97,3 +97,39 @@ suite "DSP56300 Idiomatic Nim Compiler Macro":
     check s.yRam[0x10'u32] == 0x1500'u32
     # 0.5 * 0.5 = 0.25 (0x200000) >> 1 = 0.125 (0x100000)
     check s.xRam[0x13'u32] == 0x100000'u32
+
+  test "Compile case statement branching":
+    const prog = compileDsp56300:
+      let op = xMem[0x10]
+      case op
+      of 1:
+        xMem[0x20] = 1000
+      of 2:
+        xMem[0x20] = 2000
+      else:
+        xMem[0x20] = 9999
+
+    proc runProg(s: var DspState) =
+      s.pc = 0'u32
+      for i, w in prog:
+        s.pRam[uint32(i)] = w
+      for _ in 0 ..< 20:
+        let blk = liftBasicBlock(s, s.pc, maxWords = 16)
+        if blk.ops.len == 0: break
+        discard runBlock(s, blk)
+        if s.pc >= uint32(prog.len): break
+
+    var s1 = newDspState()
+    s1.xRam[0x10'u32] = 1'u32
+    runProg(s1)
+    check s1.xRam[0x20'u32] == 1000'u32
+
+    var s2 = newDspState()
+    s2.xRam[0x10'u32] = 2'u32
+    runProg(s2)
+    check s2.xRam[0x20'u32] == 2000'u32
+
+    var s3 = newDspState()
+    s3.xRam[0x10'u32] = 7'u32
+    runProg(s3)
+    check s3.xRam[0x20'u32] == 9999'u32
