@@ -307,7 +307,9 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
         let (isDstReg, _) = parseRegId(d)
         if s.startsWith("#"):
           let imm = parseNumberLit(s, symbols)
-          if imm > 0xFF'u32:
+          let sRaw = s.strip()
+          let isExplicit24 = (sRaw.startsWith("#$") or sRaw.startsWith("#0x") or sRaw.startsWith("#0X")) and sRaw.len > 5
+          if imm > 0xFF'u32 or isExplicit24:
             advancePc(2)
           else:
             advancePc(1)
@@ -533,7 +535,9 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
         emitWord(asmMoveReg(srcReg, dstReg))
       elif s.startsWith("#") and isDstReg:
         let imm = parseNumberLit(s, symbols)
-        if imm <= 0xFF'u32 and dstReg in {RegId.regX0, RegId.regX1, RegId.regY0, RegId.regY1, RegId.regA0, RegId.regB0, RegId.regA1, RegId.regB1}:
+        let sRaw = s.strip()
+        let isExplicit24 = (sRaw.startsWith("#$") or sRaw.startsWith("#0x") or sRaw.startsWith("#0X")) and sRaw.len > 5
+        if not isExplicit24 and imm <= 0xFF'u32 and dstReg in {RegId.regX0, RegId.regX1, RegId.regY0, RegId.regY1, RegId.regA0, RegId.regB0, RegId.regA1, RegId.regB1, RegId.regA, RegId.regB}:
           emitWord(asmMoveImmShort(dstReg, uint8(imm)))
         else:
           let w = asmMoveImm24(dstReg, imm)
