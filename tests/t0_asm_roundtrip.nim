@@ -138,6 +138,15 @@ suite "DSP56300 Assembler Round-Trip & Execution":
     check absA.aluOp == AluOp.opAbs
     check absA.dstReg == RegId.regA
 
+    let lsrB = decodeInstruction([asmLsr(RegId.regB)], 0)
+    check lsrB.aluOp == AluOp.opLsr
+    check lsrB.dstReg == RegId.regB
+
+    let cmpX0A = decodeInstruction([asmCmp(RegId.regX0, RegId.regA)], 0)
+    check cmpX0A.aluOp == AluOp.opCmp
+    check cmpX0A.src1Reg == RegId.regX0
+    check cmpX0A.dstReg == RegId.regA
+
   test "Round-trip Moves and Hardware Loops":
     # Register to Register move: MOVE X0, A1
     let movReg = decodeInstruction([asmMoveReg(RegId.regX0, RegId.regA1)], 0)

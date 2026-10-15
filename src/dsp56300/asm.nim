@@ -244,6 +244,22 @@ func asmRnd*(dstAcc: RegId): uint32 {.inline.} =
   # jjj = 001, kkk = 001 -> 0x11 or 0x19
   0x000011'u32 or (d shl 3)
 
+func asmCmp*(src: RegId, dstAcc: RegId): uint32 {.inline.} =
+  let d = if dstAcc == RegId.regB: 1'u32 else: 0'u32
+  if src in {RegId.regA, RegId.regB}:
+    return 0x000005'u32 or (d shl 3)
+  let jjj = case src
+  of RegId.regX0: 0b100'u32
+  of RegId.regY0: 0b101'u32
+  of RegId.regX1: 0b110'u32
+  else:           0b111'u32
+  (jjj shl 4) or (d shl 3) or 0b101
+
+func asmLsr*(dstAcc: RegId): uint32 {.inline.} =
+  let d = if dstAcc == RegId.regB: 1'u32 else: 0'u32
+  # jjj = 010, kkk = 011 -> 0x23 or 0x2B
+  0x000023'u32 or (d shl 3)
+
 # ------------------------------------------------------------- Moves & Memory Access
 
 func asmMoveReg*(src, dst: RegId): uint32 {.inline.} =

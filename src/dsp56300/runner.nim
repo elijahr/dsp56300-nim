@@ -214,6 +214,24 @@ proc runBlock*(state: var DspState, blk: IrBasicBlock): uint32 =
         of AluOp.opAsr:
           acc = signExtend56(cast[uint64](acc shr 1))
 
+        of AluOp.opLsr:
+          acc = signExtend56((cast[uint64](acc) and 0x00FFFFFFFFFFFFFF'u64) shr 1)
+
+        of AluOp.opCmp:
+          let subVal = if op.src1 in {RegId.regA, RegId.regB}:
+            (if op.src1 == RegId.regA: state.getAccA() else: state.getAccB())
+          else:
+            int64(s1) shl 24
+          let diff = signExtend56(cast[uint64](acc - subVal))
+          if diff == 0:
+            state.sr = state.sr or SR_Z
+          else:
+            state.sr = state.sr and (not SR_Z)
+          if diff < 0:
+            state.sr = state.sr or SR_N
+          else:
+            state.sr = state.sr and (not SR_N)
+
         of AluOp.opAnd:
           acc = acc and (int64(s1) shl 24)
 
@@ -228,21 +246,22 @@ proc runBlock*(state: var DspState, blk: IrBasicBlock): uint32 =
 
         else: discard
 
-        if op.dst == RegId.regB:
-          state.setAccB(acc)
-        else:
-          state.setAccA(acc)
+        if op.aluOp != AluOp.opCmp:
+          if op.dst == RegId.regB:
+            state.setAccB(acc)
+          else:
+            state.setAccA(acc)
 
-        # Update condition code flags in SR (Z and N)
-        if acc == 0:
-          state.sr = state.sr or SR_Z
-        else:
-          state.sr = state.sr and (not SR_Z)
+          # Update condition code flags in SR (Z and N)
+          if acc == 0:
+            state.sr = state.sr or SR_Z
+          else:
+            state.sr = state.sr and (not SR_Z)
 
-        if acc < 0:
-          state.sr = state.sr or SR_N
-        else:
-          state.sr = state.sr and (not SR_N)
+          if acc < 0:
+            state.sr = state.sr or SR_N
+          else:
+            state.sr = state.sr and (not SR_N)
 
       of IrOpKind.irBranch:
         state.pc = op.imm
