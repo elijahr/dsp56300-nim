@@ -157,6 +157,33 @@ func asmSub*(src: RegId, dstAcc: RegId): uint32 {.inline.} =
   else:           0b111'u32
   (jjj shl 4) or (d shl 3) or 0b100
 
+func asmAnd*(src: RegId, dstAcc: RegId): uint32 {.inline.} =
+  let d = if dstAcc == RegId.regB: 1'u32 else: 0'u32
+  let jjj = case src
+  of RegId.regX0: 0b100'u32
+  of RegId.regY0: 0b101'u32
+  of RegId.regX1: 0b110'u32
+  else:           0b111'u32
+  (jjj shl 4) or (d shl 3) or 0b110
+
+func asmOr*(src: RegId, dstAcc: RegId): uint32 {.inline.} =
+  let d = if dstAcc == RegId.regB: 1'u32 else: 0'u32
+  let jjj = case src
+  of RegId.regX0: 0b100'u32
+  of RegId.regY0: 0b101'u32
+  of RegId.regX1: 0b110'u32
+  else:           0b111'u32
+  (jjj shl 4) or (d shl 3) or 0b010
+
+func asmEor*(src: RegId, dstAcc: RegId): uint32 {.inline.} =
+  let d = if dstAcc == RegId.regB: 1'u32 else: 0'u32
+  let jjj = case src
+  of RegId.regX0: 0b100'u32
+  of RegId.regY0: 0b101'u32
+  of RegId.regX1: 0b110'u32
+  else:           0b111'u32
+  (jjj shl 4) or (d shl 3) or 0b011
+
 func mpyEncodeQQQ(s1, s2: RegId): uint32 {.inline.} =
   if s1 == RegId.regX0 and s2 == RegId.regX0: 0b000'u32
   elif s1 == RegId.regY0 and s2 == RegId.regY0: 0b001'u32

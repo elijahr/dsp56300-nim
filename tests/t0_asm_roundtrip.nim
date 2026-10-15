@@ -70,6 +70,29 @@ suite "DSP56300 Assembler Round-Trip & Execution":
     check subX1A.src1Reg == RegId.regX1
     check subX1A.dstReg == RegId.regA
 
+    # AND X0, A and AND Y1, B
+    let andX0A = decodeInstruction([asmAnd(RegId.regX0, RegId.regA)], 0)
+    check andX0A.aluOp == AluOp.opAnd
+    check andX0A.src1Reg == RegId.regX0
+    check andX0A.dstReg == RegId.regA
+
+    let andY1B = decodeInstruction([asmAnd(RegId.regY1, RegId.regB)], 0)
+    check andY1B.aluOp == AluOp.opAnd
+    check andY1B.src1Reg == RegId.regY1
+    check andY1B.dstReg == RegId.regB
+
+    # OR X1, B
+    let orX1B = decodeInstruction([asmOr(RegId.regX1, RegId.regB)], 0)
+    check orX1B.aluOp == AluOp.opOr
+    check orX1B.src1Reg == RegId.regX1
+    check orX1B.dstReg == RegId.regB
+
+    # EOR Y0, A
+    let eorY0A = decodeInstruction([asmEor(RegId.regY0, RegId.regA)], 0)
+    check eorY0A.aluOp == AluOp.opEor
+    check eorY0A.src1Reg == RegId.regY0
+    check eorY0A.dstReg == RegId.regA
+
     # MPY X0, Y0, A
     let mpyInst = decodeInstruction([asmMpy(RegId.regX0, RegId.regY0, RegId.regA)], 0)
     check mpyInst.aluOp == AluOp.opMpy
@@ -174,3 +197,11 @@ suite "DSP56300 Assembler Round-Trip & Execution":
     check cycles >= 5
     # Result: 3 * 5 = 15 (0x0F) in Accumulator A
     check state.a1 == 0x0F'u32
+
+    # Test AND operation: A = 0x0F, X0 = 0x06 -> A = 0x06
+    state.pc = 0x103'u32
+    state.x0 = 0x000006'u32
+    state.pRam[0x103] = asmAnd(RegId.regX0, RegId.regA)
+    let andBlk = liftBasicBlock(state, 0x103'u32, maxWords = 1)
+    discard runBlock(state, andBlk)
+    check state.a1 == 0x06'u32
