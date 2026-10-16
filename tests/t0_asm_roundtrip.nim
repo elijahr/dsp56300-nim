@@ -125,6 +125,14 @@ suite "DSP56300 Assembler Round-Trip & Execution":
     check negInst.aluOp == AluOp.opNeg
     check negInst.dstReg == RegId.regA
 
+    let notInstA = decodeInstruction([asmNot(RegId.regA)], 0)
+    check notInstA.aluOp == AluOp.opNot
+    check notInstA.dstReg == RegId.regA
+
+    let notInstB = decodeInstruction([asmNot(RegId.regB)], 0)
+    check notInstB.aluOp == AluOp.opNot
+    check notInstB.dstReg == RegId.regB
+
     # TST A and TST B
     let tstA = decodeInstruction([asmTst(RegId.regA)], 0)
     check tstA.aluOp == AluOp.opTst

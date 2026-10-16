@@ -361,7 +361,7 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
     if not (parts[0].toUpperAscii() in [
       "NOP", "RTS", "RTI", "RESET", "WAIT", "STOP", "ENDDO", "JMP", "JSR", "JCC",
       "JEQ", "JNE", "JCS", "JCC", "JMI", "JPL", "JGE", "JLT", "JGT", "JLE", "JLC", "JLS", "JEC", "JES",
-      "CLR", "ADD", "SUB", "CMP", "AND", "OR", "EOR", "MPY", "MAC", "MACR",
+      "CLR", "ADD", "SUB", "CMP", "AND", "OR", "EOR", "NOT", "MPY", "MAC", "MACR",
       "ASL", "ASR", "LSR", "NEG", "ABS", "TFR", "TST", "RND", "DO", "REP", "MOVE", "DC", "DS"
     ]):
       if parts[0].endsWith(":") or parts.len == 1:
@@ -495,6 +495,9 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
     of "ABS":
       let (_, dst) = parseRegId(operandStr)
       emitWord(asmAbs(dst))
+    of "NOT":
+      let (_, dst) = parseRegId(operandStr)
+      emitWord(asmNot(dst))
     of "TFR":
       let ops = operandStr.split(',')
       let (_, src) = parseRegId(ops[0])

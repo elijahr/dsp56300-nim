@@ -229,6 +229,10 @@ func asmAbs*(dstAcc: RegId): uint32 {.inline.} =
   let d = if dstAcc == RegId.regB: 1'u32 else: 0'u32
   (0b010'u32 shl 4) or (d shl 3) or 0b110
 
+func asmNot*(dstAcc: RegId): uint32 {.inline.} =
+  let d = if dstAcc == RegId.regB: 1'u32 else: 0'u32
+  (0b001'u32 shl 4) or (d shl 3) or 0b111
+
 func asmTfr*(srcAcc, dstAcc: RegId): uint32 {.inline.} =
   let d = if dstAcc == RegId.regB: 1'u32 else: 0'u32
   # jjj = 000, kkk = 001 -> 0x01 or 0x09
