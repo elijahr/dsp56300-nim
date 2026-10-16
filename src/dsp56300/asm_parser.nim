@@ -2,7 +2,7 @@
 ## Reference: Motorola DSP56300 Family Manual (DSP56300FM.pdf), Chapter 12 & 13.
 ## Strict Clean-Room: zero GPL code, derived strictly from Motorola specifications.
 
-import std/[strutils, tables, parseutils]
+import std/[strutils, tables, parseutils, sets]
 import dsp56300/decode_types
 import "dsp56300/asm.nim"
 
@@ -228,13 +228,17 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
 
   # ----------------------------------------------------------- Pass 1: Symbol Definition
   # ----------------------------------------------------------- Pass 1: Label Collection & Sizing
-  for iter in 0 .. 1:
+  var longBranches = initHashSet[int]()
+  var passIter = 0
+  while passIter < 5:
+    inc passIter
+    var changed = false
     curSpace = MemSpace.memP
     pcP = baseOrg
     pcX = 0
     pcY = 0
 
-    for rawLine in lines:
+    for lineIdx, rawLine in lines:
       var line = rawLine
       # Strip comments (; or // or #)
       let cIdx = line.find(';')
@@ -249,7 +253,9 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
       if parts.len >= 3 and parts[1].toUpperAscii() == "EQU":
         let sym = parts[0].strip(chars = {':'})
         let val = parseNumberLit(parts[2], symbols)
-        symbols[sym] = val
+        if not symbols.hasKey(sym) or symbols[sym] != val:
+          symbols[sym] = val
+          changed = true
         continue
 
       # Check ORG: "ORG P:$100"
@@ -286,7 +292,9 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
           codeLine = line[parts[0].len..^1].strip()
 
         if label.len > 0:
-          symbols[label] = getPc()
+          if not symbols.hasKey(label) or symbols[label] != getPc():
+            symbols[label] = getPc()
+            changed = true
 
       if codeLine.len == 0:
         continue
@@ -312,6 +320,8 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
           let d = ops[1].strip()
           let (isSrcReg, _) = parseRegId(s)
           let (isDstReg, _) = parseRegId(d)
+          let sUpper = s.toUpperAscii()
+          let dUpper = d.toUpperAscii()
           if s.startsWith("#"):
             let imm = parseNumberLit(s, symbols)
             let sRaw = s.strip()
@@ -320,9 +330,9 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
               advancePc(2)
             else:
               advancePc(1)
-          elif (s.startsWith("X:") or s.startsWith("Y:")) and not s.contains("("):
+          elif (sUpper.startsWith("X:") or sUpper.startsWith("Y:")) and not s.contains("("):
             advancePc(2)
-          elif (d.startsWith("X:") or d.startsWith("Y:")) and not d.contains("("):
+          elif (dUpper.startsWith("X:") or dUpper.startsWith("Y:")) and not d.contains("("):
             advancePc(2)
           else:
             advancePc(1)
@@ -336,27 +346,31 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
         if mnem == "JCC":
           let ops = rest.split(',')
           if ops.len >= 2: targetStr = ops[1].strip()
-        if symbols.hasKey(targetStr):
-          if symbols[targetStr] >= 0x1000'u32:
-            advancePc(2)
-          else:
-            advancePc(1)
-        else:
-          var isLong = false
-          if getPc() >= 0x0FC0'u32:
-            isLong = true
+        var isLong = (lineIdx in longBranches)
+        if not isLong:
+          if symbols.hasKey(targetStr):
+            if symbols[targetStr] >= 0x1000'u32:
+              isLong = true
+              longBranches.incl(lineIdx)
+              changed = true
           else:
             try:
               let lit = parseNumberLit(targetStr, symbols)
-              if lit >= 0x1000'u32: isLong = true
+              if lit >= 0x1000'u32:
+                isLong = true
+                longBranches.incl(lineIdx)
+                changed = true
             except:
               discard
-          if isLong:
-            advancePc(2)
-          else:
-            advancePc(1)
+        if isLong:
+          advancePc(2)
+        else:
+          advancePc(1)
       else:
         advancePc(1)
+
+    if not changed:
+      break
 
   # ----------------------------------------------------------- Pass 2: Encoding
   result.symbols = symbols
@@ -365,7 +379,7 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
   pcX = 0
   pcY = 0
 
-  for rawLine in lines:
+  for lineIdx, rawLine in lines:
     var line = rawLine
     let cIdx = line.find(';')
     if cIdx >= 0: line = line[0..<cIdx]
@@ -435,33 +449,37 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
     of "ENDDO": emitWord(asmEndDo())
     of "JMP":
       let target = parseNumberLit(operandStr, symbols)
-      if target >= 0x1000'u32:
-        emitWord(0x0AF080'u32)
-        emitWord(target)
+      if lineIdx in longBranches:
+        let w = asmJmpAbs(target)
+        emitWord(w[0])
+        emitWord(w[1])
       else:
         emitWord(asmJmp(target))
     of "JSR":
       let target = parseNumberLit(operandStr, symbols)
-      if target >= 0x1000'u32:
-        emitWord(0x0BF080'u32)
-        emitWord(target)
+      if lineIdx in longBranches:
+        let w = asmJsrAbs(target)
+        emitWord(w[0])
+        emitWord(w[1])
       else:
         emitWord(asmJsr(target))
     of "JCC":
       let ops = operandStr.split(',')
       let (_, cond) = parseConditionCode(ops[0])
       let target = parseNumberLit(ops[1], symbols)
-      if target >= 0x1000'u32:
-        emitWord(0x0AF0A0'u32 or (uint32(ord(cond)) and 0x0F'u32))
-        emitWord(target)
+      if lineIdx in longBranches:
+        let w = asmJccAbs(cond, target)
+        emitWord(w[0])
+        emitWord(w[1])
       else:
         emitWord(asmJcc(cond, target))
     of "JEQ", "JNE", "JCS", "JHS", "JLO", "JMI", "JPL", "JGE", "JLT", "JGT", "JLE", "JLC", "JLS", "JEC", "JES", "JNN", "JNR":
       let (_, cond) = parseConditionCode(mnem)
       let target = parseNumberLit(operandStr, symbols)
-      if target >= 0x1000'u32:
-        emitWord(0x0AF0A0'u32 or (uint32(ord(cond)) and 0x0F'u32))
-        emitWord(target)
+      if lineIdx in longBranches:
+        let w = asmJccAbs(cond, target)
+        emitWord(w[0])
+        emitWord(w[1])
       else:
         emitWord(asmJcc(cond, target))
     of "CLR":
