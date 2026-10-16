@@ -464,15 +464,25 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
       else:
         emitWord(asmJsr(target))
     of "JCC":
-      let ops = operandStr.split(',')
-      let (_, cond) = parseConditionCode(ops[0])
-      let target = parseNumberLit(ops[1], symbols)
-      if lineIdx in longBranches:
-        let w = asmJccAbs(cond, target)
-        emitWord(w[0])
-        emitWord(w[1])
+      if ',' in operandStr:
+        let ops = operandStr.split(',')
+        let (_, cond) = parseConditionCode(ops[0])
+        let target = parseNumberLit(ops[1], symbols)
+        if lineIdx in longBranches:
+          let w = asmJccAbs(cond, target)
+          emitWord(w[0])
+          emitWord(w[1])
+        else:
+          emitWord(asmJcc(cond, target))
       else:
-        emitWord(asmJcc(cond, target))
+        let (_, cond) = parseConditionCode("JCC")
+        let target = parseNumberLit(operandStr, symbols)
+        if lineIdx in longBranches:
+          let w = asmJccAbs(cond, target)
+          emitWord(w[0])
+          emitWord(w[1])
+        else:
+          emitWord(asmJcc(cond, target))
     of "JEQ", "JNE", "JCS", "JHS", "JLO", "JMI", "JPL", "JGE", "JLT", "JGT", "JLE", "JLC", "JLS", "JEC", "JES", "JNN", "JNR":
       let (_, cond) = parseConditionCode(mnem)
       let target = parseNumberLit(operandStr, symbols)

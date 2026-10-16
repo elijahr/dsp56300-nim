@@ -209,7 +209,12 @@ proc runBlock*(state: var DspState, blk: IrBasicBlock): uint32 =
           if acc < 0: acc = signExtend56(cast[uint64](-acc))
 
         of AluOp.opAsl:
+          let cOut = ((cast[uint64](acc) and (1'u64 shl 47)) != 0) or ((cast[uint64](acc) and (1'u64 shl 55)) != 0)
           acc = signExtend56(cast[uint64](acc shl 1))
+          if cOut:
+            state.sr = state.sr or SR_C
+          else:
+            state.sr = state.sr and (not SR_C)
 
         of AluOp.opAsr:
           acc = signExtend56(cast[uint64](acc shr 1))
