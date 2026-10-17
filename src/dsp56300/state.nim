@@ -113,11 +113,7 @@ template mask24*(v: uint32): uint32 =
   v and 0x00FFFFFF'u32
 
 template signExtend24*(v: uint32): int32 =
-  let m = v and 0x00FFFFFF'u32
-  if (m and 0x00800000'u32) != 0:
-    cast[int32](m or 0xFF000000'u32)
-  else:
-    cast[int32](m)
+  (cast[int32](v shl 8)) shr 8
 
 template signExtend8To24*(v: uint8): uint32 =
   if (v and 0x80'u8) != 0:

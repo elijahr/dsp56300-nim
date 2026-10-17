@@ -5,11 +5,14 @@
 import dsp56300/[decode_types, state, memory, agu, alu, ir]
 
 proc getReg24*(s: var DspState, reg: RegId): uint32 {.inline.} =
+  if likely(reg >= RegId.regX0 and reg <= RegId.regY1):
+    case reg
+    of RegId.regX0: return s.x0
+    of RegId.regX1: return s.x1
+    of RegId.regY0: return s.y0
+    of RegId.regY1: return s.y1
+    else: discard
   case reg
-  of RegId.regX0: s.x0
-  of RegId.regX1: s.x1
-  of RegId.regY0: s.y0
-  of RegId.regY1: s.y1
   of RegId.regA0: s.a0
   of RegId.regA1: s.a1
   of RegId.regA2: uint32(s.a2)
@@ -33,11 +36,15 @@ proc getReg24*(s: DspState, reg: RegId): uint32 {.inline.} =
 
 proc setReg24*(s: var DspState, reg: RegId, val: uint32) {.inline.} =
   let v = val and 0x00FFFFFF'u32
+  if likely(reg >= RegId.regX0 and reg <= RegId.regY1):
+    case reg
+    of RegId.regX0: s.x0 = v
+    of RegId.regX1: s.x1 = v
+    of RegId.regY0: s.y0 = v
+    of RegId.regY1: s.y1 = v
+    else: discard
+    return
   case reg
-  of RegId.regX0: s.x0 = v
-  of RegId.regX1: s.x1 = v
-  of RegId.regY0: s.y0 = v
-  of RegId.regY1: s.y1 = v
   of RegId.regA0: s.a0 = v
   of RegId.regA1: s.a1 = v
   of RegId.regA2: s.a2 = uint8(v and 0xFF)
