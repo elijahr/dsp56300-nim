@@ -5,14 +5,11 @@
 import dsp56300/[decode_types, state, memory, agu, alu, ir]
 
 proc getReg24*(s: var DspState, reg: RegId): uint32 {.inline.} =
-  if likely(reg >= RegId.regX0 and reg <= RegId.regY1):
-    case reg
-    of RegId.regX0: return s.x0
-    of RegId.regX1: return s.x1
-    of RegId.regY0: return s.y0
-    of RegId.regY1: return s.y1
-    else: discard
   case reg
+  of RegId.regX0: s.x0
+  of RegId.regX1: s.x1
+  of RegId.regY0: s.y0
+  of RegId.regY1: s.y1
   of RegId.regA0: s.a0
   of RegId.regA1: s.a1
   of RegId.regA2: uint32(s.a2)
@@ -36,15 +33,11 @@ proc getReg24*(s: DspState, reg: RegId): uint32 {.inline.} =
 
 proc setReg24*(s: var DspState, reg: RegId, val: uint32) {.inline.} =
   let v = val and 0x00FFFFFF'u32
-  if likely(reg >= RegId.regX0 and reg <= RegId.regY1):
-    case reg
-    of RegId.regX0: s.x0 = v
-    of RegId.regX1: s.x1 = v
-    of RegId.regY0: s.y0 = v
-    of RegId.regY1: s.y1 = v
-    else: discard
-    return
   case reg
+  of RegId.regX0: s.x0 = v
+  of RegId.regX1: s.x1 = v
+  of RegId.regY0: s.y0 = v
+  of RegId.regY1: s.y1 = v
   of RegId.regA0: s.a0 = v
   of RegId.regA1: s.a1 = v
   of RegId.regA2: s.a2 = uint8(v and 0xFF)
@@ -128,6 +121,27 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
   var accA = state.getAccA()
   var accB = state.getAccB()
 
+  template syncAccState() =
+    let uA = cast[uint64](accA)
+    state.core.a2 = uint8((uA shr 48) and 0xFF'u64)
+    state.core.a1 = uint32((uA shr 24) and 0x00FFFFFF'u64)
+    state.core.a0 = uint32(uA and 0x00FFFFFF'u64)
+
+    let uB = cast[uint64](accB)
+    state.core.b2 = uint8((uB shr 48) and 0xFF'u64)
+    state.core.b1 = uint32((uB shr 24) and 0x00FFFFFF'u64)
+    state.core.b0 = uint32(uB and 0x00FFFFFF'u64)
+
+  template readReg(r: RegId): uint32 =
+    case r
+    of RegId.regA, RegId.regA1: uint32((cast[uint64](accA) shr 24) and 0x00FFFFFF'u64)
+    of RegId.regA0: uint32(cast[uint64](accA) and 0x00FFFFFF'u64)
+    of RegId.regA2: uint32((cast[uint64](accA) shr 48) and 0xFF'u64)
+    of RegId.regB, RegId.regB1: uint32((cast[uint64](accB) shr 24) and 0x00FFFFFF'u64)
+    of RegId.regB0: uint32(cast[uint64](accB) and 0x00FFFFFF'u64)
+    of RegId.regB2: uint32((cast[uint64](accB) shr 48) and 0xFF'u64)
+    else: getReg24(state, r)
+
   for iter in 0..<loopIterations:
     var opIdx = 0
     while opIdx < numOps:
@@ -143,24 +157,40 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
         if addrIdx < state.pRamGen.len:
           if state.pRamGen[addrIdx] != op.expectedGen:
             # Stale block! Abort execution
+            syncAccState()
             return cycles
 
       of IrOpKind.irLoadImm:
-        setReg24(state, op.dst, op.imm)
-        if op.dst == RegId.regA: accA = state.getAccA()
-        elif op.dst == RegId.regB: accB = state.getAccB()
+        if op.dst == RegId.regA:
+          accA = signExtend56(cast[uint64](int64(signExtend24(op.imm)) shl 24))
+        elif op.dst == RegId.regB:
+          accB = signExtend56(cast[uint64](int64(signExtend24(op.imm)) shl 24))
+        else:
+          setReg24(state, op.dst, op.imm)
+          if unlikely(op.dst in {RegId.regA0, RegId.regA1, RegId.regA2}): accA = state.getAccA()
+          elif unlikely(op.dst in {RegId.regB0, RegId.regB1, RegId.regB2}): accB = state.getAccB()
 
       of IrOpKind.irLoadReg:
-        let v = getReg24(state, op.src1)
-        setReg24(state, op.dst, v)
-        if op.dst == RegId.regA: accA = state.getAccA()
-        elif op.dst == RegId.regB: accB = state.getAccB()
+        let v = readReg(op.src1)
+        if op.dst == RegId.regA:
+          accA = signExtend56(cast[uint64](int64(signExtend24(v)) shl 24))
+        elif op.dst == RegId.regB:
+          accB = signExtend56(cast[uint64](int64(signExtend24(v)) shl 24))
+        else:
+          setReg24(state, op.dst, v)
+          if unlikely(op.dst in {RegId.regA0, RegId.regA1, RegId.regA2}): accA = state.getAccA()
+          elif unlikely(op.dst in {RegId.regB0, RegId.regB1, RegId.regB2}): accB = state.getAccB()
 
       of IrOpKind.irStoreReg:
-        let v = getReg24(state, op.src1)
-        setReg24(state, op.dst, v)
-        if op.dst == RegId.regA: accA = state.getAccA()
-        elif op.dst == RegId.regB: accB = state.getAccB()
+        let v = readReg(op.src1)
+        if op.dst == RegId.regA:
+          accA = signExtend56(cast[uint64](int64(signExtend24(v)) shl 24))
+        elif op.dst == RegId.regB:
+          accB = signExtend56(cast[uint64](int64(signExtend24(v)) shl 24))
+        else:
+          setReg24(state, op.dst, v)
+          if unlikely(op.dst in {RegId.regA0, RegId.regA1, RegId.regA2}): accA = state.getAccA()
+          elif unlikely(op.dst in {RegId.regB0, RegId.regB1, RegId.regB2}): accB = state.getAccB()
 
       of IrOpKind.irLoadMem:
         let targetAddr = if op.addrMode == AddrMode.amAbsolute:
@@ -173,16 +203,21 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
         elif targetAddr >= 0xFFFF80'u32:
           let space = if op.space == MemSpace.memX: Dsp56300Space.SpaceX else: Dsp56300Space.SpaceY
           val = state.mem.readMem(state.core, space, targetAddr)
-        setReg24(state, op.dst, val)
-        if op.dst == RegId.regA: accA = state.getAccA()
-        elif op.dst == RegId.regB: accB = state.getAccB()
+        if op.dst == RegId.regA:
+          accA = signExtend56(cast[uint64](int64(signExtend24(val)) shl 24))
+        elif op.dst == RegId.regB:
+          accB = signExtend56(cast[uint64](int64(signExtend24(val)) shl 24))
+        else:
+          setReg24(state, op.dst, val)
+          if unlikely(op.dst in {RegId.regA0, RegId.regA1, RegId.regA2}): accA = state.getAccA()
+          elif unlikely(op.dst in {RegId.regB0, RegId.regB1, RegId.regB2}): accB = state.getAccB()
 
       of IrOpKind.irStoreMem:
         let targetAddr = if op.addrMode == AddrMode.amAbsolute:
           op.imm
         else:
           state.r[op.rNum]
-        let val = getReg24(state, op.src1)
+        let val = readReg(op.src1)
         if likely(targetAddr < xLen):
           let maskedVal = val and 0x00FFFFFF'u32
           if op.space == MemSpace.memX:
@@ -310,31 +345,21 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
         if op.aluOp != AluOp.opCmp:
           if op.dst == RegId.regB:
             accB = acc
-            let u = cast[uint64](acc)
-            state.core.b2 = uint8((u shr 48) and 0xFF'u64)
-            state.core.b1 = uint32((u shr 24) and 0x00FFFFFF'u64)
-            state.core.b0 = uint32(u and 0x00FFFFFF'u64)
           else:
             accA = acc
-            let u = cast[uint64](acc)
-            state.core.a2 = uint8((u shr 48) and 0xFF'u64)
-            state.core.a1 = uint32((u shr 24) and 0x00FFFFFF'u64)
-            state.core.a0 = uint32(u and 0x00FFFFFF'u64)
 
           # Update condition code flags in SR (Z and N)
           if acc == 0:
-            state.sr = state.sr or SR_Z
+            state.sr = (state.sr or SR_Z) and (not SR_N)
+          elif acc < 0:
+            state.sr = (state.sr or SR_N) and (not SR_Z)
           else:
-            state.sr = state.sr and (not SR_Z)
-
-          if acc < 0:
-            state.sr = state.sr or SR_N
-          else:
-            state.sr = state.sr and (not SR_N)
+            state.sr = state.sr and (not (SR_Z or SR_N))
 
       of IrOpKind.irBranch:
         state.pc = op.imm
         cycles += 2
+        syncAccState()
         return cycles
 
       of IrOpKind.irBranchCond:
@@ -343,12 +368,14 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
         else:
           state.pc = blk.endPc
         cycles += 2
+        syncAccState()
         return cycles
 
       of IrOpKind.irCall:
         state.core.stackPush(state.pc + 1, state.sr)
         state.pc = op.imm
         cycles += 2
+        syncAccState()
         return cycles
 
       of IrOpKind.irReturn:
@@ -356,6 +383,7 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
         state.core.stackPop(newPc, dummySr)
         state.pc = newPc
         cycles += 2
+        syncAccState()
         return cycles
 
       of IrOpKind.irReturnInt:
@@ -364,6 +392,7 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
         state.pc = newPc
         state.sr = newSr
         cycles += 2
+        syncAccState()
         return cycles
 
       of IrOpKind.irLoopDo:
@@ -381,6 +410,7 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
           state.sr = state.sr and (not SR_LF)
           state.pc = state.core.la + 1
           cycles += 2
+          syncAccState()
           return cycles
 
       of IrOpKind.irLoopRep:
@@ -396,6 +426,7 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
       of IrOpKind.irHalt:
         state.core.halted = true
         cycles += 1
+        syncAccState()
         return cycles
 
     if not isLoopBlock:
@@ -409,6 +440,7 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
   if cycles == 0:
     cycles = 1
 
+  syncAccState()
   return cycles
 
 proc runBlock*(state: var DspState, blk: var IrBasicBlock): uint32 {.inline.} =
