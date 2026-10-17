@@ -110,8 +110,13 @@ proc step*(self: Peripherals56311, cycles: int = 1) =
   # Step Timers
   self.timers.step(cycles)
 
-  # Step DMA Engine
-  if self.readMem != nil and self.writeMem != nil:
+  # Step DMA Engine only if any channel is active
+  var anyDma = false
+  for ch in 0..5:
+    if (self.dma.channels[ch].dcr and (1'u32 shl 23)) != 0:
+      anyDma = true
+      break
+  if anyDma and self.readMem != nil and self.writeMem != nil:
     let rProc = self.readMem
     let wProc = self.writeMem
     discard self.dma.step(rProc, wProc, proc(src: int): bool = self.queryDmaRequest(src))

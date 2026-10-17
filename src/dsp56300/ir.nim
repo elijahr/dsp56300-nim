@@ -147,9 +147,7 @@ proc liftBasicBlock*(state: DspState, startPc: uint32, maxWords: int = 64): IrBa
     let w1 = if int(curPc + 1) < state.mem.pRam.len: state.mem.pRam[int(curPc + 1)] else: 0'u32
     let gen = if int(curPc) < state.pRamGen.len: state.pRamGen[int(curPc)] else: 1'u32
 
-    # Check generation counter for self-modifying code invalidation on block entry
-    if wordsRead == 0:
-      result.ops.add(MicroOp(kind: IrOpKind.irCheckGen, pAddr: curPc, expectedGen: gen))
+    # Generation checks handled by cache invalidation on P-RAM writes
 
     let inst = decodeInstruction([w0, w1], curPc)
     let instWords = int(inst.words)

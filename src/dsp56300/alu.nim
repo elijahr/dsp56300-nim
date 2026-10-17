@@ -32,10 +32,7 @@ proc bit*(v: int64, b: int): uint32 {.inline.} =
 
 # Sign extension from 56-bit to 64-bit int
 proc signExtend56*(raw: uint64): int64 {.inline.} =
-  if (raw and (1'u64 shl 55)) != 0:
-    cast[int64](raw or 0xFF00000000000000'u64)
-  else:
-    cast[int64](raw and 0x00FFFFFFFFFFFFFF'u64)
+  cast[int64](cast[int64](raw shl 8) shr 8)
 
 # Calculate Extension (E) and Unnormalized (U) flags
 proc calcExtensionFlag*(val: int64, sr: uint32): bool =

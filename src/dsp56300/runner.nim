@@ -114,11 +114,18 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
   let xLen = uint32(state.mem.xRam.len)
   let yLen = uint32(state.mem.yRam.len)
 
+  let numOps = blk.ops.len
+  if numOps == 0: return 0
+  let opsPtr = cast[ptr UncheckedArray[MicroOp]](addr blk.ops[0])
+
+  var accA = state.getAccA()
+  var accB = state.getAccB()
+
   for iter in 0..<loopIterations:
     var opIdx = 0
-    while opIdx < blk.ops.len:
-      let op = blk.ops[opIdx]
-      opIdx += 1
+    while opIdx < numOps:
+      template op: untyped = opsPtr[opIdx]
+      inc opIdx
 
       case op.kind
       of IrOpKind.irNop:
@@ -133,14 +140,20 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
 
       of IrOpKind.irLoadImm:
         setReg24(state, op.dst, op.imm)
+        if op.dst == RegId.regA: accA = state.getAccA()
+        elif op.dst == RegId.regB: accB = state.getAccB()
 
       of IrOpKind.irLoadReg:
         let v = getReg24(state, op.src1)
         setReg24(state, op.dst, v)
+        if op.dst == RegId.regA: accA = state.getAccA()
+        elif op.dst == RegId.regB: accB = state.getAccB()
 
       of IrOpKind.irStoreReg:
         let v = getReg24(state, op.src1)
         setReg24(state, op.dst, v)
+        if op.dst == RegId.regA: accA = state.getAccA()
+        elif op.dst == RegId.regB: accB = state.getAccB()
 
       of IrOpKind.irLoadMem:
         let targetAddr = if op.addrMode == AddrMode.amAbsolute:
@@ -148,15 +161,14 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
         else:
           state.r[op.rNum]
         var val: uint32
-        if likely(targetAddr < 0xFFFF80'u32 and xRamPtr != nil and yRamPtr != nil):
-          if op.space == MemSpace.memX:
-            val = if targetAddr < xLen: xRamPtr[targetAddr] else: 0'u32
-          else:
-            val = if targetAddr < yLen: yRamPtr[targetAddr] else: 0'u32
-        else:
+        if likely(targetAddr < xLen):
+          val = if op.space == MemSpace.memX: xRamPtr[targetAddr] else: yRamPtr[targetAddr]
+        elif targetAddr >= 0xFFFF80'u32:
           let space = if op.space == MemSpace.memX: Dsp56300Space.SpaceX else: Dsp56300Space.SpaceY
           val = state.mem.readMem(state.core, space, targetAddr)
         setReg24(state, op.dst, val)
+        if op.dst == RegId.regA: accA = state.getAccA()
+        elif op.dst == RegId.regB: accB = state.getAccB()
 
       of IrOpKind.irStoreMem:
         let targetAddr = if op.addrMode == AddrMode.amAbsolute:
@@ -164,12 +176,13 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
         else:
           state.r[op.rNum]
         let val = getReg24(state, op.src1)
-        if likely(targetAddr < 0xFFFF80'u32 and xRamPtr != nil and yRamPtr != nil):
+        if likely(targetAddr < xLen):
+          let maskedVal = val and 0x00FFFFFF'u32
           if op.space == MemSpace.memX:
-            if targetAddr < xLen: xRamPtr[targetAddr] = val and 0x00FFFFFF'u32
+            xRamPtr[targetAddr] = maskedVal
           else:
-            if targetAddr < yLen: yRamPtr[targetAddr] = val and 0x00FFFFFF'u32
-        else:
+            yRamPtr[targetAddr] = maskedVal
+        elif targetAddr >= 0xFFFF80'u32:
           let space = if op.space == MemSpace.memX: Dsp56300Space.SpaceX else: Dsp56300Space.SpaceY
           state.mem.writeMem(state.core, space, targetAddr, val)
 
@@ -181,45 +194,54 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
         of AddrMode.amPostDecN: -int32(state.n[op.rNum])
         else: 0
         if delta != 0:
-          state.r[op.rNum] = agu.updateAddress(state.r[op.rNum], delta, state.m[op.rNum])
+          let m = state.m[op.rNum]
+          if likely((m and 0xFFFF'u32) == 0xFFFF'u32):
+            state.r[op.rNum] = (uint32(int32(state.r[op.rNum]) + delta)) and 0x00FFFFFF'u32
+          else:
+            state.r[op.rNum] = agu.updateAddress(state.r[op.rNum], delta, m)
 
       of IrOpKind.irAluOp:
         cycles += 1
-        let s1 = signExtend24(getReg24(state, op.src1))
-        let s2 = signExtend24(getReg24(state, op.src2))
-        var acc = if op.dst == RegId.regB: state.getAccB() else: state.getAccA()
+        var acc = if op.dst == RegId.regB: accB else: accA
 
         case op.aluOp
         of AluOp.opMpy, AluOp.opMpyr:
-          # Fractional 24x24 multiply: (s1 * s2) shl 1
+          let s1 = signExtend24(getReg24(state, op.src1))
+          let s2 = signExtend24(getReg24(state, op.src2))
           var prod = (int64(s1) * int64(s2)) shl 1
           if op.isNeg: prod = -prod
           acc = signExtend56(cast[uint64](prod))
 
         of AluOp.opMac, AluOp.opMacr:
+          let s1 = signExtend24(getReg24(state, op.src1))
+          let s2 = signExtend24(getReg24(state, op.src2))
           var prod = (int64(s1) * int64(s2)) shl 1
           if op.isNeg: prod = -prod
           acc = signExtend56(cast[uint64](acc + prod))
 
         of AluOp.opAdd:
-          let addVal = if op.src1 in {RegId.regA, RegId.regB}:
-            (if op.src1 == RegId.regA: state.getAccA() else: state.getAccB())
+          let addVal = if op.src1 == RegId.regA:
+            accA
+          elif op.src1 == RegId.regB:
+            accB
           else:
-            int64(s1) shl 24 # Left-align 24-bit input to MSP (bits 47..24)
+            int64(signExtend24(getReg24(state, op.src1))) shl 24 # Left-align 24-bit input to MSP (bits 47..24)
           acc = signExtend56(cast[uint64](acc + addVal))
 
         of AluOp.opSub:
-          let subVal = if op.src1 in {RegId.regA, RegId.regB}:
-            (if op.src1 == RegId.regA: state.getAccA() else: state.getAccB())
+          let subVal = if op.src1 == RegId.regA:
+            accA
+          elif op.src1 == RegId.regB:
+            accB
           else:
-            int64(s1) shl 24
+            int64(signExtend24(getReg24(state, op.src1))) shl 24
           acc = signExtend56(cast[uint64](acc - subVal))
 
         of AluOp.opClr:
           acc = 0
 
         of AluOp.opTfr:
-          acc = if op.src1 == RegId.regA: state.getAccA() else: state.getAccB()
+          acc = if op.src1 == RegId.regA: accA else: accB
 
         of AluOp.opTst:
           discard
@@ -245,10 +267,12 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
           acc = signExtend56((cast[uint64](acc) and 0x00FFFFFFFFFFFFFF'u64) shr 1)
 
         of AluOp.opCmp:
-          let subVal = if op.src1 in {RegId.regA, RegId.regB}:
-            (if op.src1 == RegId.regA: state.getAccA() else: state.getAccB())
+          let subVal = if op.src1 == RegId.regA:
+            accA
+          elif op.src1 == RegId.regB:
+            accB
           else:
-            int64(s1) shl 24
+            int64(signExtend24(getReg24(state, op.src1))) shl 24
           let diff = signExtend56(cast[uint64](acc - subVal))
           if diff == 0:
             state.sr = state.sr or SR_Z
@@ -260,12 +284,15 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
             state.sr = state.sr and (not SR_N)
 
         of AluOp.opAnd:
+          let s1 = signExtend24(getReg24(state, op.src1))
           acc = acc and (int64(s1) shl 24)
 
         of AluOp.opOr:
+          let s1 = signExtend24(getReg24(state, op.src1))
           acc = acc or (int64(s1) shl 24)
 
         of AluOp.opEor:
+          let s1 = signExtend24(getReg24(state, op.src1))
           acc = acc xor (int64(s1) shl 24)
 
         of AluOp.opNot:
@@ -275,9 +302,17 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
 
         if op.aluOp != AluOp.opCmp:
           if op.dst == RegId.regB:
-            state.setAccB(acc)
+            accB = acc
+            let u = cast[uint64](acc)
+            state.core.b2 = uint8((u shr 48) and 0xFF'u64)
+            state.core.b1 = uint32((u shr 24) and 0x00FFFFFF'u64)
+            state.core.b0 = uint32(u and 0x00FFFFFF'u64)
           else:
-            state.setAccA(acc)
+            accA = acc
+            let u = cast[uint64](acc)
+            state.core.a2 = uint8((u shr 48) and 0xFF'u64)
+            state.core.a1 = uint32((u shr 24) and 0x00FFFFFF'u64)
+            state.core.a0 = uint32(u and 0x00FFFFFF'u64)
 
           # Update condition code flags in SR (Z and N)
           if acc == 0:

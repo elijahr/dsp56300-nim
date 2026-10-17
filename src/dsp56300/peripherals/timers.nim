@@ -160,6 +160,9 @@ proc stepTimer(timer: var TimerUnit) =
     timer.tcsr = timer.tcsr or TCSR_TCF
 
 proc step*(self: var TripleTimerModule, clockCycles: int = 1) =
+  let anyEnabled = ((self.timers[0].tcsr or self.timers[1].tcsr or self.timers[2].tcsr) and TCSR_TE) != 0
+  if not anyEnabled:
+    return
   for _ in 0..<clockCycles:
     # 1. Step Prescaler
     var prescalerTick = false

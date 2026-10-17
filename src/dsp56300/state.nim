@@ -132,11 +132,7 @@ proc toAccum56*(a2: uint8, a1: uint32, a0: uint32): int64 {.inline.} =
   let raw = (uint64(a2) shl 48) or
             ((uint64(a1) and 0x00FFFFFF'u64) shl 24) or
             (uint64(a0) and 0x00FFFFFF'u64)
-  # Sign-extend bit 55 to bit 63
-  if (raw and (1'u64 shl 55)) != 0:
-    cast[int64](raw or 0xFF00000000000000'u64)
-  else:
-    cast[int64](raw)
+  cast[int64](cast[int64](raw shl 8) shr 8)
 
 proc fromAccum56*(val: int64, a2: var uint8, a1: var uint32, a0: var uint32) {.inline.} =
   let u = cast[uint64](val)
