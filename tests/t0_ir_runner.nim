@@ -2,7 +2,7 @@
 ## Strict TDD: Red -> Green -> Fault-Plant
 
 import std/unittest
-import dsp56300/[ir, runner]
+import dsp56300/[decode_types, state, ir, runner]
 
 suite "DSP56300 Shared Micro-Op IR & Cold-Block Runner":
 
@@ -89,3 +89,62 @@ suite "DSP56300 Shared Micro-Op IR & Cold-Block Runner":
 
     # Running stale block should fail validation
     check not validateBlock(state, blockIr)
+
+  test "56-bit Hardware Accumulator Limiter / Saturation on MOVE A / MOVE B":
+    var state = newDspState()
+    # Positive overflow: A = $01_400000_000000 (A2=1, A1=$400000, A0=0)
+    # A2 (0x01) != sign extension of A1 bit 23 (0x00), so extension is in use!
+    state.a2 = 1'u8
+    state.a1 = 0x400000'u32
+    state.a0 = 0'u32
+    state.sr = 0'u32
+
+    # RegId.regA read passes through Data Shifter / Limiter
+    let satPos = getReg24(state, RegId.regA)
+    check satPos == 0x007FFFFF'u32
+    check (state.sr and SR_L) != 0
+
+    # RegId.regA1 read must be raw MSP without limiting or SR_L
+    state.sr = 0'u32
+    let rawMsp = getReg24(state, RegId.regA1)
+    check rawMsp == 0x400000'u32
+    check (state.sr and SR_L) == 0
+
+    # Negative overflow: A = $FE_200000_000000 (A2=0xFE, A1=$200000, A0=0)
+    # Negative accumulator (bit 55 = 1, bit 47 = 0)
+    state.a2 = 0xFE'u8
+    state.a1 = 0x200000'u32
+    state.a0 = 0'u32
+    state.sr = 0'u32
+
+    let satNeg = getReg24(state, RegId.regA)
+    check satNeg == 0x00800000'u32
+    check (state.sr and SR_L) != 0
+
+    # IR runner execution with MOVE A, X:(R0) saturates store into memory
+    state.pc = 0x100'u32
+    state.r[0] = 0x50'u32
+    state.m[0] = 0xFFFFFF'u32
+    state.a2 = 1'u8
+    state.a1 = 0x400000'u32
+    state.a0 = 0'u32
+    state.sr = 0'u32
+
+    # MOVE A, X:(R0) opcode: 0x56E000 (move A to X:(R0), no update)
+    # Let's verify via liftBasicBlock
+    state.pRam[0x100] = 0x56E000'u32 # MOVE A, X:(R0)
+    let blockIr = liftBasicBlock(state, 0x100'u32, maxWords = 1)
+    let cycles = runBlock(state, blockIr)
+    check cycles >= 1
+    check state.xRam[0x50] == 0x007FFFFF'u32
+    check (state.sr and SR_L) != 0
+
+    # Now execute MOVE A1, X:(R0) opcode: 0x54E000 (raw MSP read without limiter)
+    state.pc = 0x101'u32
+    state.sr = 0'u32
+    state.pRam[0x101] = 0x54E000'u32 # MOVE A1, X:(R0)
+    let blockIr2 = liftBasicBlock(state, 0x101'u32, maxWords = 1)
+    let cycles2 = runBlock(state, blockIr2)
+    check cycles2 >= 1
+    check state.xRam[0x50] == 0x400000'u32
+    check (state.sr and SR_L) == 0

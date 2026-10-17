@@ -16,8 +16,8 @@ proc getReg24*(s: var DspState, reg: RegId): uint32 {.inline.} =
   of RegId.regB0: s.b0
   of RegId.regB1: s.b1
   of RegId.regB2: uint32(s.b2)
-  of RegId.regA: s.a1 # Limiting/MSP read
-  of RegId.regB: s.b1
+  of RegId.regA: limitAccumulator24(s.getAccA(), s.core.sr) # Data Shifter / Limiter read
+  of RegId.regB: limitAccumulator24(s.getAccB(), s.core.sr)
   of RegId.regR0..RegId.regR7: s.r[int(reg) - int(RegId.regR0)]
   of RegId.regN0..RegId.regN7: s.n[int(reg) - int(RegId.regN0)]
   of RegId.regM0..RegId.regM7: s.m[int(reg) - int(RegId.regM0)]
@@ -134,10 +134,12 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
 
   template readReg(r: RegId): uint32 =
     case r
-    of RegId.regA, RegId.regA1: uint32((cast[uint64](accA) shr 24) and 0x00FFFFFF'u64)
+    of RegId.regA: limitAccumulator24(accA, state.core.sr)
+    of RegId.regA1: uint32((cast[uint64](accA) shr 24) and 0x00FFFFFF'u64)
     of RegId.regA0: uint32(cast[uint64](accA) and 0x00FFFFFF'u64)
     of RegId.regA2: uint32((cast[uint64](accA) shr 48) and 0xFF'u64)
-    of RegId.regB, RegId.regB1: uint32((cast[uint64](accB) shr 24) and 0x00FFFFFF'u64)
+    of RegId.regB: limitAccumulator24(accB, state.core.sr)
+    of RegId.regB1: uint32((cast[uint64](accB) shr 24) and 0x00FFFFFF'u64)
     of RegId.regB0: uint32(cast[uint64](accB) and 0x00FFFFFF'u64)
     of RegId.regB2: uint32((cast[uint64](accB) shr 48) and 0xFF'u64)
     of RegId.regX0: state.x0
@@ -147,10 +149,8 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
     else: getReg24(state, r)
 
   for iter in 0..<loopIterations:
-    var opIdx = 0
-    while opIdx < numOps:
+    for opIdx in 0..<numOps:
       template op: untyped = opsPtr[opIdx]
-      inc opIdx
 
       case op.kind
       of IrOpKind.irNop:

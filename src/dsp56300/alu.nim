@@ -142,19 +142,29 @@ proc updateLogicalCcr*(s: var Dsp56300State, res: int64) =
   s.sr = ccr
 
 # 24-Bit / 48-Bit Bus Read with Shifter / Limiter
-proc readAccumulator24*(s: var Dsp56300State, isB: bool): uint32 =
-  let val = if isB: s.getB() else: s.getA()
-  s.updateScalingFlag(val)
+proc limitAccumulator24*(val: int64, sr: var uint32): uint32 {.inline.} =
+  let sMode = (sr shr 10) and 0x03'u32
+  var growth = false
+  case sMode
+  of 0: # No scaling: A46 XOR A45
+    growth = (val.bit(46) xor val.bit(45)) != 0
+  of 1: # Scale down: A47 XOR A46
+    growth = (val.bit(47) xor val.bit(46)) != 0
+  of 2: # Scale up: A45 XOR A44
+    growth = (val.bit(45) xor val.bit(44)) != 0
+  else:
+    discard
+  if growth:
+    sr = sr or SR_S
 
   # Check extension in use
-  if calcExtensionFlag(val, s.sr):
-    s.sr = s.sr or SR_L # Limiter fired -> set sticky L bit
+  if calcExtensionFlag(val, sr):
+    sr = sr or SR_L # Limiter fired -> set sticky L bit
     if val.bit55 == 0:
       return CONST_POS_LIMIT24
     else:
       return CONST_NEG_LIMIT24
 
-  let sMode = (s.sr shr 10) and 0x03'u32
   let u = cast[uint64](val)
   case sMode
   of 0: # No scaling: A1
@@ -165,6 +175,10 @@ proc readAccumulator24*(s: var Dsp56300State, isB: bool): uint32 =
     return uint32((u shr 23) and 0x00FFFFFF'u64)
   else:
     return uint32((u shr 24) and 0x00FFFFFF'u64)
+
+proc readAccumulator24*(s: var Dsp56300State, isB: bool): uint32 =
+  let val = if isB: s.getB() else: s.getA()
+  limitAccumulator24(val, s.sr)
 
 proc readAccumulator48*(s: var Dsp56300State, isB: bool): uint64 =
   let val = if isB: s.getB() else: s.getA()
