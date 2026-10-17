@@ -140,6 +140,10 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
     of RegId.regB, RegId.regB1: uint32((cast[uint64](accB) shr 24) and 0x00FFFFFF'u64)
     of RegId.regB0: uint32(cast[uint64](accB) and 0x00FFFFFF'u64)
     of RegId.regB2: uint32((cast[uint64](accB) shr 48) and 0xFF'u64)
+    of RegId.regX0: state.x0
+    of RegId.regX1: state.x1
+    of RegId.regY0: state.y0
+    of RegId.regY1: state.y1
     else: getReg24(state, r)
 
   for iter in 0..<loopIterations:
@@ -248,15 +252,15 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
 
         case op.aluOp
         of AluOp.opMpy, AluOp.opMpyr:
-          let s1 = signExtend24(getReg24(state, op.src1))
-          let s2 = signExtend24(getReg24(state, op.src2))
+          let s1 = signExtend24(readReg(op.src1))
+          let s2 = signExtend24(readReg(op.src2))
           var prod = (int64(s1) * int64(s2)) shl 1
           if op.isNeg: prod = -prod
           acc = signExtend56(cast[uint64](prod))
 
         of AluOp.opMac, AluOp.opMacr:
-          let s1 = signExtend24(getReg24(state, op.src1))
-          let s2 = signExtend24(getReg24(state, op.src2))
+          let s1 = signExtend24(readReg(op.src1))
+          let s2 = signExtend24(readReg(op.src2))
           var prod = (int64(s1) * int64(s2)) shl 1
           if op.isNeg: prod = -prod
           acc = signExtend56(cast[uint64](acc + prod))
@@ -267,7 +271,7 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
           elif op.src1 == RegId.regB:
             accB
           else:
-            int64(signExtend24(getReg24(state, op.src1))) shl 24 # Left-align 24-bit input to MSP (bits 47..24)
+            int64(signExtend24(readReg(op.src1))) shl 24 # Left-align 24-bit input to MSP (bits 47..24)
           acc = signExtend56(cast[uint64](acc + addVal))
 
         of AluOp.opSub:
@@ -276,7 +280,7 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
           elif op.src1 == RegId.regB:
             accB
           else:
-            int64(signExtend24(getReg24(state, op.src1))) shl 24
+            int64(signExtend24(readReg(op.src1))) shl 24
           acc = signExtend56(cast[uint64](acc - subVal))
 
         of AluOp.opClr:
@@ -314,7 +318,7 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
           elif op.src1 == RegId.regB:
             accB
           else:
-            int64(signExtend24(getReg24(state, op.src1))) shl 24
+            int64(signExtend24(readReg(op.src1))) shl 24
           let diff = signExtend56(cast[uint64](acc - subVal))
           if diff == 0:
             state.sr = state.sr or SR_Z
@@ -326,15 +330,15 @@ proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
             state.sr = state.sr and (not SR_N)
 
         of AluOp.opAnd:
-          let s1 = signExtend24(getReg24(state, op.src1))
+          let s1 = signExtend24(readReg(op.src1))
           acc = acc and (int64(s1) shl 24)
 
         of AluOp.opOr:
-          let s1 = signExtend24(getReg24(state, op.src1))
+          let s1 = signExtend24(readReg(op.src1))
           acc = acc or (int64(s1) shl 24)
 
         of AluOp.opEor:
-          let s1 = signExtend24(getReg24(state, op.src1))
+          let s1 = signExtend24(readReg(op.src1))
           acc = acc xor (int64(s1) shl 24)
 
         of AluOp.opNot:
