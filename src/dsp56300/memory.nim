@@ -100,16 +100,27 @@ proc getRamLimits*(state: Dsp56300State, pLimit, xLimit, yLimit: var uint32) =
       xLimit = 49152
       yLimit = 49152
 
-proc readMem*(mem: var Dsp56300Memory, state: Dsp56300State, space: Dsp56300Space, address: uint32): uint32 =
-  let maskedAddr = mask24(address)
-  var pLimit, xLimit, yLimit: uint32
-  getRamLimits(state, pLimit, xLimit, yLimit)
+proc readMem*(mem: var Dsp56300Memory, state: Dsp56300State, space: Dsp56300Space, address: uint32): uint32 {.inline.} =
+  let maskedAddr = address and 0x00FFFFFF'u32
 
-  # Check peripheral hooks first (highest priority)
+  # Internal Physical RAM Fast-Path (< $FFFF80)
+  if likely(maskedAddr < IO_WINDOW_BASE):
+    case space
+    of SpaceX:
+      if likely(maskedAddr < uint32(mem.xRam.len)): return mem.xRam[maskedAddr]
+    of SpaceY:
+      if likely(maskedAddr < uint32(mem.yRam.len)): return mem.yRam[maskedAddr]
+    of SpaceP:
+      if likely(maskedAddr < uint32(mem.pRam.len)): return mem.pRam[maskedAddr]
+
+  # Check peripheral hooks ($FFFF80..$FFFFFF)
   for hook in mem.hooks:
     if hook.space == space and maskedAddr >= hook.baseAddr and maskedAddr < (hook.baseAddr + hook.size):
       if hook.readFn != nil:
         return mask24(hook.readFn(hook.userData, cint(space), maskedAddr))
+
+  var pLimit, xLimit, yLimit: uint32
+  getRamLimits(state, pLimit, xLimit, yLimit)
 
   case space
   of SpaceP:
@@ -143,18 +154,35 @@ proc readMem*(mem: var Dsp56300Memory, state: Dsp56300State, space: Dsp56300Spac
       return mask24(mem.extReadFn(mem.userContext, cint(space), maskedAddr))
     return 0
 
-proc writeMem*(mem: var Dsp56300Memory, state: Dsp56300State, space: Dsp56300Space, address: uint32, val: uint32) =
-  let maskedAddr = mask24(address)
-  let maskedVal = mask24(val)
-  var pLimit, xLimit, yLimit: uint32
-  getRamLimits(state, pLimit, xLimit, yLimit)
+proc writeMem*(mem: var Dsp56300Memory, state: Dsp56300State, space: Dsp56300Space, address: uint32, val: uint32) {.inline.} =
+  let maskedAddr = address and 0x00FFFFFF'u32
+  let maskedVal = val and 0x00FFFFFF'u32
 
-  # Check peripheral hooks first
+  # Internal Physical RAM Fast-Path (< $FFFF80)
+  if likely(maskedAddr < IO_WINDOW_BASE):
+    case space
+    of SpaceX:
+      if likely(maskedAddr < uint32(mem.xRam.len)):
+        mem.xRam[maskedAddr] = maskedVal
+        return
+    of SpaceY:
+      if likely(maskedAddr < uint32(mem.yRam.len)):
+        mem.yRam[maskedAddr] = maskedVal
+        return
+    of SpaceP:
+      if likely(maskedAddr < uint32(mem.pRam.len)):
+        mem.pRam[maskedAddr] = maskedVal
+        return
+
+  # Check peripheral hooks ($FFFF80..$FFFFFF)
   for hook in mem.hooks:
     if hook.space == space and maskedAddr >= hook.baseAddr and maskedAddr < (hook.baseAddr + hook.size):
       if hook.writeFn != nil:
         hook.writeFn(hook.userData, cint(space), maskedAddr, maskedVal)
         return
+
+  var pLimit, xLimit, yLimit: uint32
+  getRamLimits(state, pLimit, xLimit, yLimit)
 
   case space
   of SpaceP:

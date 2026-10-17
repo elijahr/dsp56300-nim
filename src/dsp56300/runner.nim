@@ -4,7 +4,7 @@
 
 import dsp56300/[decode_types, state, memory, agu, alu, ir]
 
-proc getReg24*(s: DspState, reg: RegId): uint32 {.inline.} =
+proc getReg24*(s: var DspState, reg: RegId): uint32 {.inline.} =
   case reg
   of RegId.regX0: s.x0
   of RegId.regX1: s.x1
@@ -26,6 +26,10 @@ proc getReg24*(s: DspState, reg: RegId): uint32 {.inline.} =
   of RegId.regLA: s.core.la
   of RegId.regLC: s.core.lc
   else: 0'u32
+
+proc getReg24*(s: DspState, reg: RegId): uint32 {.inline.} =
+  var st = s
+  getReg24(st, reg)
 
 proc setReg24*(s: var DspState, reg: RegId, val: uint32) {.inline.} =
   let v = val and 0x00FFFFFF'u32
@@ -85,7 +89,7 @@ proc evalCondition*(cc: ConditionCode, sr: uint32): bool {.inline.} =
   of ConditionCode.ccNN: not (z or (u and (not e)))
   of ConditionCode.ccNR: z or (u and (not e))
 
-proc runBlock*(state: var DspState, blk: IrBasicBlock): uint32 =
+proc runBlockCore*(state: var DspState, blk: var IrBasicBlock): uint32 =
   ## Reference deterministic execution oracle for a Micro-Op IR basic block.
   ## Returns the number of DSP instruction cycles executed.
   var cycles = 0'u32
@@ -104,6 +108,11 @@ proc runBlock*(state: var DspState, blk: IrBasicBlock): uint32 =
       break
     elif op.kind != IrOpKind.irCheckGen and op.kind != IrOpKind.irNop:
       break
+
+  let xRamPtr = if state.mem.xRam.len > 0: cast[ptr UncheckedArray[uint32]](addr state.mem.xRam[0]) else: nil
+  let yRamPtr = if state.mem.yRam.len > 0: cast[ptr UncheckedArray[uint32]](addr state.mem.yRam[0]) else: nil
+  let xLen = uint32(state.mem.xRam.len)
+  let yLen = uint32(state.mem.yRam.len)
 
   for iter in 0..<loopIterations:
     var opIdx = 0
@@ -138,8 +147,15 @@ proc runBlock*(state: var DspState, blk: IrBasicBlock): uint32 =
           op.imm
         else:
           state.r[op.rNum]
-        let space = if op.space == MemSpace.memX: Dsp56300Space.SpaceX else: Dsp56300Space.SpaceY
-        let val = state.mem.readMem(state.core, space, targetAddr)
+        var val: uint32
+        if likely(targetAddr < 0xFFFF80'u32 and xRamPtr != nil and yRamPtr != nil):
+          if op.space == MemSpace.memX:
+            val = if targetAddr < xLen: xRamPtr[targetAddr] else: 0'u32
+          else:
+            val = if targetAddr < yLen: yRamPtr[targetAddr] else: 0'u32
+        else:
+          let space = if op.space == MemSpace.memX: Dsp56300Space.SpaceX else: Dsp56300Space.SpaceY
+          val = state.mem.readMem(state.core, space, targetAddr)
         setReg24(state, op.dst, val)
 
       of IrOpKind.irStoreMem:
@@ -148,8 +164,14 @@ proc runBlock*(state: var DspState, blk: IrBasicBlock): uint32 =
         else:
           state.r[op.rNum]
         let val = getReg24(state, op.src1)
-        let space = if op.space == MemSpace.memX: Dsp56300Space.SpaceX else: Dsp56300Space.SpaceY
-        state.mem.writeMem(state.core, space, targetAddr, val)
+        if likely(targetAddr < 0xFFFF80'u32 and xRamPtr != nil and yRamPtr != nil):
+          if op.space == MemSpace.memX:
+            if targetAddr < xLen: xRamPtr[targetAddr] = val and 0x00FFFFFF'u32
+          else:
+            if targetAddr < yLen: yRamPtr[targetAddr] = val and 0x00FFFFFF'u32
+        else:
+          let space = if op.space == MemSpace.memX: Dsp56300Space.SpaceX else: Dsp56300Space.SpaceY
+          state.mem.writeMem(state.core, space, targetAddr, val)
 
       of IrOpKind.irAguUpdate:
         let delta: int32 = case op.addrMode
@@ -346,3 +368,16 @@ proc runBlock*(state: var DspState, blk: IrBasicBlock): uint32 =
     cycles = 1
 
   return cycles
+
+proc runBlock*(state: var DspState, blk: var IrBasicBlock): uint32 {.inline.} =
+  runBlockCore(state, blk)
+
+proc runBlock*(state: var DspState, blk: IrBasicBlock): uint32 {.inline.} =
+  var b = blk
+  runBlockCore(state, b)
+
+proc runBlock*(state: var DspState, blk: ref IrBasicBlock): uint32 {.inline.} =
+  if blk != nil:
+    runBlockCore(state, blk[])
+  else:
+    0'u32
