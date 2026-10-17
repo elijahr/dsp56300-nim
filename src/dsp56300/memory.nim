@@ -114,10 +114,14 @@ proc readMem*(mem: var Dsp56300Memory, state: Dsp56300State, space: Dsp56300Spac
       if likely(maskedAddr < uint32(mem.pRam.len)): return mem.pRam[maskedAddr]
 
   # Check peripheral hooks ($FFFF80..$FFFFFF)
-  for hook in mem.hooks:
-    if hook.space == space and maskedAddr >= hook.baseAddr and maskedAddr < (hook.baseAddr + hook.size):
-      if hook.readFn != nil:
-        return mask24(hook.readFn(hook.userData, cint(space), maskedAddr))
+  let numHooks = mem.hooks.len
+  if numHooks > 0:
+    let hooksPtr = cast[ptr UncheckedArray[PeripheralHook]](addr mem.hooks[0])
+    for i in 0 ..< numHooks:
+      template hook: untyped = hooksPtr[i]
+      if hook.space == space and maskedAddr >= hook.baseAddr and maskedAddr < (hook.baseAddr + hook.size):
+        if hook.readFn != nil:
+          return mask24(hook.readFn(hook.userData, cint(space), maskedAddr))
 
   var pLimit, xLimit, yLimit: uint32
   getRamLimits(state, pLimit, xLimit, yLimit)
@@ -175,11 +179,15 @@ proc writeMem*(mem: var Dsp56300Memory, state: Dsp56300State, space: Dsp56300Spa
         return
 
   # Check peripheral hooks ($FFFF80..$FFFFFF)
-  for hook in mem.hooks:
-    if hook.space == space and maskedAddr >= hook.baseAddr and maskedAddr < (hook.baseAddr + hook.size):
-      if hook.writeFn != nil:
-        hook.writeFn(hook.userData, cint(space), maskedAddr, maskedVal)
-        return
+  let numHooks = mem.hooks.len
+  if numHooks > 0:
+    let hooksPtr = cast[ptr UncheckedArray[PeripheralHook]](addr mem.hooks[0])
+    for i in 0 ..< numHooks:
+      template hook: untyped = hooksPtr[i]
+      if hook.space == space and maskedAddr >= hook.baseAddr and maskedAddr < (hook.baseAddr + hook.size):
+        if hook.writeFn != nil:
+          hook.writeFn(hook.userData, cint(space), maskedAddr, maskedVal)
+          return
 
   var pLimit, xLimit, yLimit: uint32
   getRamLimits(state, pLimit, xLimit, yLimit)
