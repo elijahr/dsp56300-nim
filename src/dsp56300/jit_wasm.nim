@@ -216,7 +216,8 @@ proc compileWasmModule*(blk: IrBasicBlock): seq[byte] =
     bodyBytes.add(0x45'u8)                                                    # i32.eqz
     bodyBytes.add([0x0D'u8, 0x01])                                            # br_if 1 (exit block)
 
-  for op in blk.ops:
+  for rawOp in blk.ops:
+    let op = canonicalizeOp(rawOp)
     case op.kind
     of IrOpKind.irNop, IrOpKind.irCheckGen:
       discard

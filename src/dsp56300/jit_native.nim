@@ -141,7 +141,8 @@ proc computeBlockCycles*(blk: IrBasicBlock): uint32 =
       break
 
   var perIter = 0'u32
-  for op in blk.ops:
+  for rawOp in blk.ops:
+    let op = canonicalizeOp(rawOp)
     if op.kind in {IrOpKind.irNop, IrOpKind.irAluOp, IrOpKind.irLoopEndDo, IrOpKind.irLoopRep, IrOpKind.irHalt}:
       perIter += 1
     elif op.kind in {IrOpKind.irBranch, IrOpKind.irBranchCond, IrOpKind.irCall, IrOpKind.irReturn, IrOpKind.irReturnInt, IrOpKind.irLoopDo, IrOpKind.irLoopDoForever, IrOpKind.irLoopBrkCc}:
@@ -182,7 +183,8 @@ proc assembleArm64*(blk: IrBasicBlock): seq[uint32] =
     result.add(armMovImm32(20, loopIterations)) # mov w20, #loopIterations
     loopStartIdx = result.len
 
-  for op in blk.ops:
+  for rawOp in blk.ops:
+    let op = canonicalizeOp(rawOp)
     case op.kind
     of IrOpKind.irNop, IrOpKind.irCheckGen:
       discard
@@ -458,7 +460,8 @@ proc assembleX86_64*(blk: IrBasicBlock): seq[byte] =
     x86EmitU32(result, loopIterations)
     loopStartIdx = result.len
 
-  for op in blk.ops:
+  for rawOp in blk.ops:
+    let op = canonicalizeOp(rawOp)
     case op.kind
     of IrOpKind.irNop, IrOpKind.irCheckGen:
       discard
