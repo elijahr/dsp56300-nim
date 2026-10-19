@@ -149,6 +149,15 @@ type
     fopSexA1
     fopLoadXAbsTstA
     fopLoadYAbsTstA
+    fopLoadPeriphX
+    fopStorePeriphXA
+    fopStorePeriphXA1
+    fopCmpRegB
+    fopStoreRegA
+    fopStoreRegB1
+    fopStoreYAbsB
+    fopTstB
+    fopOrRegA
     fopFallback
 
   FastOp* {.packed.} = object
@@ -332,7 +341,7 @@ proc liftBasicBlock*(state: DspState, startPc: uint32, maxWords: int = 64): IrBa
         wordsRead += instWords
         break
       of ControlOp.ctrlJmp, ControlOp.ctrlBra:
-        if instWords == 1 and inst.targetAddr > curPc and (inst.targetAddr - curPc) <= 32 and inst.targetAddr < uint32(state.mem.pRam.len) and state.mem.pRam[int(inst.targetAddr)] != 0'u32 and (wordsRead + instWords + 2) < maxWords:
+        if inst.targetAddr > curPc and (inst.targetAddr - curPc) <= 256 and inst.targetAddr < uint32(state.mem.pRam.len) and state.mem.pRam[int(inst.targetAddr)] != 0'u32 and (wordsRead + instWords + 2) < maxWords:
           curPc = inst.targetAddr
           wordsRead += instWords
           continue
@@ -413,7 +422,7 @@ proc liftBasicBlock*(state: DspState, startPc: uint32, maxWords: int = 64): IrBa
           imm: inst.parallel.memAddr
         ))
       elif not inst.parallel.isWrite:
-        if inst.parallel.memMode == AddrMode.amAbsolute and inst.parallel.memAddr < 0xFFFF80'u32:
+        if inst.parallel.memMode == AddrMode.amAbsolute:
           let k = if inst.parallel.memSpace == MemSpace.memX: IrOpKind.irLoadXAbs else: IrOpKind.irLoadYAbs
           result.ops.add(MicroOp(kind: k, dst: inst.parallel.memReg, imm: inst.parallel.memAddr))
         else:
@@ -426,12 +435,12 @@ proc liftBasicBlock*(state: DspState, startPc: uint32, maxWords: int = 64): IrBa
             imm: inst.parallel.memAddr
           ))
       else:
-        if inst.parallel.memMode == AddrMode.amAbsolute and inst.parallel.memAddr < 0xFFFF80'u32:
+        if inst.parallel.memAddr >= 0xFFFF80'u32:
+          result.writesPeriph = true
+        if inst.parallel.memMode == AddrMode.amAbsolute:
           let k = if inst.parallel.memSpace == MemSpace.memX: IrOpKind.irStoreXAbs else: IrOpKind.irStoreYAbs
           result.ops.add(MicroOp(kind: k, src1: inst.parallel.memReg, imm: inst.parallel.memAddr))
         else:
-          if inst.parallel.memAddr >= 0xFFFF80'u32:
-            result.writesPeriph = true
           result.ops.add(MicroOp(
             kind: IrOpKind.irStoreMem,
             src1: inst.parallel.memReg,
@@ -588,8 +597,11 @@ proc buildFastOps*(blk: var IrBasicBlock) =
 
     of IrOpKind.irLoadXAbs:
       if op.imm >= 0xFFFF80'u32:
-        f.kind = fopFallback
-        f.imm = uint32(idx)
+        if op.dst == RegId.regA:
+          f.kind = fopLoadPeriphX
+        else:
+          f.kind = fopFallback
+          f.imm = uint32(idx)
       elif op.dst == RegId.regA:
         if blk.fastOps.len > 0 and blk.fastOps[^1].kind == fopStoreXAbsA1 and blk.fastOps[^1].imm == op.imm:
           f.kind = fopNop
@@ -624,8 +636,13 @@ proc buildFastOps*(blk: var IrBasicBlock) =
 
     of IrOpKind.irStoreXAbs:
       if op.imm >= 0xFFFF80'u32:
-        f.kind = fopFallback
-        f.imm = uint32(idx)
+        if op.src1 == RegId.regA:
+          f.kind = fopStorePeriphXA
+        elif op.src1 == RegId.regA1:
+          f.kind = fopStorePeriphXA1
+        else:
+          f.kind = fopFallback
+          f.imm = uint32(idx)
       elif op.src1 == RegId.regA1:
         f.kind = fopStoreXAbsA1
       elif op.src1 == RegId.regA:
@@ -645,6 +662,8 @@ proc buildFastOps*(blk: var IrBasicBlock) =
         f.kind = fopStoreYAbsA1
       elif op.src1 == RegId.regA:
         f.kind = fopStoreYAbsA
+      elif op.src1 == RegId.regB:
+        f.kind = fopStoreYAbsB
       elif op.src1 <= RegId.regY1:
         f.kind = fopStoreYAbsReg
       else:
@@ -679,8 +698,12 @@ proc buildFastOps*(blk: var IrBasicBlock) =
         else:
           f.kind = fopFallback
           f.imm = uint32(idx)
+      elif op.src1 == RegId.regA and op.dst <= RegId.regY1:
+        f.kind = fopStoreRegA
       elif op.src1 == RegId.regA1 and op.dst <= RegId.regY1:
         f.kind = fopStoreRegA1
+      elif op.src1 == RegId.regB1 and op.dst <= RegId.regY1:
+        f.kind = fopStoreRegB1
       elif op.src1 <= RegId.regY1 and op.dst <= RegId.regY1:
         f.kind = fopLoadRegReg
       else:
@@ -738,10 +761,13 @@ proc buildFastOps*(blk: var IrBasicBlock) =
             blk.fastOps[^1].kind = fopNop
         else:
           f.kind = fopCmpReg
+      elif op.dst == RegId.regB and op.src1 <= RegId.regY1:
+        f.kind = fopCmpRegB
       else:
         f.kind = fopFallback
         f.imm = uint32(idx)
       blk.fastOps.add(f)
+
 
     of IrOpKind.irMpyFast:
       if op.dst == RegId.regA:
@@ -802,10 +828,19 @@ proc buildFastOps*(blk: var IrBasicBlock) =
       of AluOp.opNeg:
         if op.dst == RegId.regA: f.kind = fopNegA else: (f.kind = fopFallback; f.imm = uint32(idx))
       of AluOp.opTst:
-        if op.dst == RegId.regA: f.kind = fopTstA else: (f.kind = fopFallback; f.imm = uint32(idx))
+        if op.dst == RegId.regA: f.kind = fopTstA
+        elif op.dst == RegId.regB: f.kind = fopTstB
+        else: (f.kind = fopFallback; f.imm = uint32(idx))
       of AluOp.opAnd:
         if op.dst == RegId.regA and op.src1 <= RegId.regY1:
           f.kind = fopAndRegA
+          f.src1 = uint8(op.src1)
+        else:
+          f.kind = fopFallback
+          f.imm = uint32(idx)
+      of AluOp.opOr:
+        if op.dst == RegId.regA and op.src1 <= RegId.regY1:
+          f.kind = fopOrRegA
           f.src1 = uint8(op.src1)
         else:
           f.kind = fopFallback
@@ -814,6 +849,7 @@ proc buildFastOps*(blk: var IrBasicBlock) =
         f.kind = fopFallback
         f.imm = uint32(idx)
       blk.fastOps.add(f)
+
 
     else:
       f.kind = fopFallback
@@ -829,13 +865,14 @@ proc buildFastOps*(blk: var IrBasicBlock) =
       accDeadAfter[k] = aDead
       case blk.fastOps[k].kind
       of fopLoadXAbsA, fopLoadYAbsA, fopLoadImmA, fopClrA, fopMpyReg, fopMpyRegNoCcr, fopMpyNegReg,
-         fopLoadXAbsTstA, fopLoadYAbsTstA:
+         fopLoadXAbsTstA, fopLoadYAbsTstA, fopLoadPeriphX:
         aDead = true
       of fopStoreXAbsA1, fopStoreYAbsA1, fopStoreXAbsA, fopStoreYAbsA, fopStoreRegA1,
          fopAddReg, fopAddRegNoCcr, fopSubReg, fopSubRegNoCcr, fopMacReg, fopMacRegNoCcr,
          fopMacNegReg, fopCmpReg, fopCmpZeroA, fopCmpImmA, fopAslA, fopAsrA, fopTfrB,
-         fopNegA, fopTstA, fopAndRegA, fopSexA1:
+         fopNegA, fopTstA, fopAndRegA, fopSexA1, fopStoreRegA, fopOrRegA, fopStorePeriphXA, fopStorePeriphXA1:
         aDead = false
+
       else: discard
 
     var passChanged = true

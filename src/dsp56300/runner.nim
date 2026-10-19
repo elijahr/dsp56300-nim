@@ -1677,6 +1677,41 @@ proc runUntilTx*(state: var DspState,
           accA = cast[int64](cast[int32](a1 shl 8)) shl 16
           updateCcrZN(accA)
 
+        of fopLoadPeriphX:
+          let val = state.mem.readMem(state.core, SpaceX, fop.imm)
+          accA = cast[int64](cast[int32](val shl 8)) shl 16
+          updateCcrZN(accA)
+
+        of fopStorePeriphXA:
+          let val = limitAccFast(accA)
+          state.mem.writeMem(state.core, SpaceX, fop.imm, val)
+
+        of fopStorePeriphXA1:
+          let val = uint32((cast[uint64](accA) shr 24) and 0x00FFFFFF'u64)
+          state.mem.writeMem(state.core, SpaceX, fop.imm, val)
+
+        of fopCmpRegB:
+          let subVal = cast[int64](cast[int32](regs[fop.src1] shl 8)) shl 16
+          let diff = accB - subVal
+          updateCcrZN(diff)
+
+        of fopStoreRegA:
+          regs[fop.dst] = limitAccFast(accA)
+
+        of fopStoreRegB1:
+          regs[fop.dst] = uint32((cast[uint64](accB) shr 24) and 0x00FFFFFF'u64)
+
+        of fopStoreYAbsB:
+          yRamPtr[fop.imm] = limitAccFast(accB)
+
+        of fopTstB:
+          updateCcrZN(accB)
+
+        of fopOrRegA:
+          let s1 = signExtend24(regs[fop.src1])
+          accA = accA or (int64(s1) shl 24)
+          updateCcrZN(accA)
+
         of fopFallback:
           let mop = addr blk.ops[fop.imm]
           let uA = cast[uint64](accA)
@@ -1752,14 +1787,20 @@ proc runUntilTx*(state: var DspState,
           let zBit = (uint32(sVal == 0)) shl 2
           let nBit = (uint32(sVal < 0)) shl 3
           sr = (sr and (not 12'u32)) or zBit or nBit
+        elif fop.kind == fopCmpImmA:
+          let subVal = cast[int64](cast[int32](fop.imm shl 8)) shl 16
+          let diff = accA - subVal
+          updateCcrZN(diff)
         else:
           execFastOp(fop)
+
       elif numFastOps == 2:
         execFastOp(addr fastOpsPtr[0])
         execFastOp(addr fastOpsPtr[1])
       else:
         for opIdx in 0 ..< numFastOps:
           execFastOp(addr fastOpsPtr[opIdx])
+
     else:
       cycles += uint32(numFastOps) * (blk.loopIterations - 1)
       for iter in 0 ..< blk.loopIterations:
