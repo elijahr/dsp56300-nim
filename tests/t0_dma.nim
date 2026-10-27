@@ -4,30 +4,38 @@
 import std/unittest
 import dsp56300/peripherals/dma
 
-type
-  MockMemory = object
-    xMem: array[0x10000, uint32]
-    yMem: array[0x10000, uint32]
-    pMem: array[0x10000, uint32]
+type MockMemory = object
+  xMem: array[0x10000, uint32]
+  yMem: array[0x10000, uint32]
+  pMem: array[0x10000, uint32]
 
 proc readMem(mem: var MockMemory, space: DmaMemorySpace, addressVal: uint32): uint32 =
   let a = addressVal and 0xFFFF'u32
   case space
-  of dmsX: result = mem.xMem[a]
-  of dmsY: result = mem.yMem[a]
-  of dmsP: result = mem.pMem[a]
-  of dmsReserved: result = 0'u32
+  of dmsX:
+    result = mem.xMem[a]
+  of dmsY:
+    result = mem.yMem[a]
+  of dmsP:
+    result = mem.pMem[a]
+  of dmsReserved:
+    result = 0'u32
 
-proc writeMem(mem: var MockMemory, space: DmaMemorySpace, addressVal: uint32, val: uint32) =
+proc writeMem(
+    mem: var MockMemory, space: DmaMemorySpace, addressVal: uint32, val: uint32
+) =
   let a = addressVal and 0xFFFF'u32
   case space
-  of dmsX: mem.xMem[a] = val and 0x00FFFFFF'u32
-  of dmsY: mem.yMem[a] = val and 0x00FFFFFF'u32
-  of dmsP: mem.pMem[a] = val and 0x00FFFFFF'u32
-  of dmsReserved: discard
+  of dmsX:
+    mem.xMem[a] = val and 0x00FFFFFF'u32
+  of dmsY:
+    mem.yMem[a] = val and 0x00FFFFFF'u32
+  of dmsP:
+    mem.pMem[a] = val and 0x00FFFFFF'u32
+  of dmsReserved:
+    discard
 
 suite "DSP56311 6-Channel DMA Controller":
-
   test "Reset state matches hardware specification":
     var dma = newDmaController()
     check dma.readRegister(DMA_DSTR) == 0x000000'u32
@@ -35,7 +43,7 @@ suite "DSP56311 6-Channel DMA Controller":
     check dma.readRegister(DMA_DOR1) == 0x000000'u32
     check dma.readRegister(DMA_DOR2) == 0x000000'u32
     check dma.readRegister(DMA_DOR3) == 0x000000'u32
-    for ch in 0..5:
+    for ch in 0 .. 5:
       check dma.readRegister(dcrAddress(ch)) == 0x000000'u32
       check dma.readRegister(dsrAddress(ch)) == 0x000000'u32
       check dma.readRegister(ddrAddress(ch)) == 0x000000'u32
@@ -44,9 +52,9 @@ suite "DSP56311 6-Channel DMA Controller":
   test "1D Block Transfer (DE-initiated, DTM=3, Postincrement)":
     var dma = newDmaController()
     var mem: MockMemory
-    
+
     # Setup source data in X memory at 0x1000
-    for i in 0..3:
+    for i in 0 .. 3:
       mem.writeMem(dmsX, uint32(0x1000 + i), uint32(0xAA00 + i))
 
     # Channel 0: Source X:0x1000, Dest X:0x2000, Counter 4
@@ -57,19 +65,24 @@ suite "DSP56311 6-Channel DMA Controller":
     # DCR: DE=1 (bit 23), DIE=1 (bit 22), DTM=3 (bits 21..19 = 011b),
     # DAM source postinc (101b = 5), DAM dest postinc (101b = 5) -> DAM = 0x2D,
     # DDS=0 (X), DSS=0 (X)
-    let dcrVal = (1'u32 shl 23) or (1'u32 shl 22) or (3'u32 shl 19) or (5'u32 shl 7) or (5'u32 shl 4)
+    let dcrVal =
+      (1'u32 shl 23) or (1'u32 shl 22) or (3'u32 shl 19) or (5'u32 shl 7) or
+      (5'u32 shl 4)
     dma.writeRegister(dcrAddress(0), dcrVal)
 
     # Step DMA engine
     var stepped = dma.step(
-      proc(space: DmaMemorySpace, a: uint32): uint32 = mem.readMem(space, a),
-      proc(space: DmaMemorySpace, a: uint32, val: uint32) = mem.writeMem(space, a, val),
-      proc(reqSource: int): bool = false
+      proc(space: DmaMemorySpace, a: uint32): uint32 =
+        mem.readMem(space, a),
+      proc(space: DmaMemorySpace, a: uint32, val: uint32) =
+        mem.writeMem(space, a, val),
+      proc(reqSource: int): bool =
+        false,
     )
     check stepped
 
     # Verify all 4 words were transferred to 0x2000..0x2003
-    for i in 0..3:
+    for i in 0 .. 3:
       check mem.readMem(dmsX, uint32(0x2000 + i)) == uint32(0xAA00 + i)
 
     # Verify channel completed: DE cleared, Transfer Done set in DSTR, Interrupt asserted
@@ -83,17 +96,17 @@ suite "DSP56311 6-Channel DMA Controller":
 
     # Buffer length = 4 words. We transfer 8 words (2 cycles of 4 words).
     # Source at 0x3000 (8 consecutive words)
-    for i in 0..7:
+    for i in 0 .. 7:
       mem.writeMem(dmsX, uint32(0x3000 + i), uint32(0x100 + i))
 
     # Destination circular buffer at 0x4000 (length 4)
     # When DCOL wraps from 3 to 0, DDR should wrap back by adding DOR0 = -3
     dma.writeRegister(dsrAddress(1), 0x003000'u32)
     dma.writeRegister(ddrAddress(1), 0x004000'u32)
-    
+
     # DCO: DCOH=1 (2 lines), DCOL=3 (4 words per line) -> (1 shl 12) or 3
     dma.writeRegister(dcoAddress(1), (1'u32 shl 12) or 3'u32)
-    
+
     # DOR0 = -3 in 24-bit 2's complement = 0xFFFFFD
     dma.writeRegister(DMA_DOR0, 0xFFFFFD'u32)
 
@@ -105,9 +118,12 @@ suite "DSP56311 6-Channel DMA Controller":
 
     # Step DMA engine to completion
     let stepped = dma.step(
-      proc(space: DmaMemorySpace, a: uint32): uint32 = mem.readMem(space, a),
-      proc(space: DmaMemorySpace, a: uint32, val: uint32) = mem.writeMem(space, a, val),
-      proc(reqSource: int): bool = false
+      proc(space: DmaMemorySpace, a: uint32): uint32 =
+        mem.readMem(space, a),
+      proc(space: DmaMemorySpace, a: uint32, val: uint32) =
+        mem.writeMem(space, a, val),
+      proc(reqSource: int): bool =
+        false,
     )
     check stepped
 
@@ -134,14 +150,19 @@ suite "DSP56311 6-Channel DMA Controller":
 
     # DCR: DE=1 (bit 23), DTM=1 (Word transfer on request),
     # DRS=11 (ESAI RX), DAM=both postinc (5, 5)
-    let dcrVal = (1'u32 shl 23) or (1'u32 shl 19) or (11'u32 shl 11) or (5'u32 shl 7) or (5'u32 shl 4)
+    let dcrVal =
+      (1'u32 shl 23) or (1'u32 shl 19) or (11'u32 shl 11) or (5'u32 shl 7) or
+      (5'u32 shl 4)
     dma.writeRegister(dcrAddress(2), dcrVal)
 
     # Step without request -> no transfer
     var stepped = dma.step(
-      proc(space: DmaMemorySpace, a: uint32): uint32 = mem.readMem(space, a),
-      proc(space: DmaMemorySpace, a: uint32, val: uint32) = mem.writeMem(space, a, val),
-      proc(reqSource: int): bool = (reqSource == 11 and esaiRxReq)
+      proc(space: DmaMemorySpace, a: uint32): uint32 =
+        mem.readMem(space, a),
+      proc(space: DmaMemorySpace, a: uint32, val: uint32) =
+        mem.writeMem(space, a, val),
+      proc(reqSource: int): bool =
+        (reqSource == 11 and esaiRxReq),
     )
     check not stepped
     check mem.readMem(dmsX, 0x6000) == 0'u32
@@ -149,22 +170,30 @@ suite "DSP56311 6-Channel DMA Controller":
     # Assert ESAI RX request
     esaiRxReq = true
     stepped = dma.step(
-      proc(space: DmaMemorySpace, a: uint32): uint32 = mem.readMem(space, a),
-      proc(space: DmaMemorySpace, a: uint32, val: uint32) = mem.writeMem(space, a, val),
-      proc(reqSource: int): bool = (reqSource == 11 and esaiRxReq)
+      proc(space: DmaMemorySpace, a: uint32): uint32 =
+        mem.readMem(space, a),
+      proc(space: DmaMemorySpace, a: uint32, val: uint32) =
+        mem.writeMem(space, a, val),
+      proc(reqSource: int): bool =
+        (reqSource == 11 and esaiRxReq),
     )
     check stepped
     check mem.readMem(dmsX, 0x6000) == 0xCAFE01'u32
     check mem.readMem(dmsX, 0x6001) == 0'u32 # second word not transferred yet
-    check (dma.readRegister(dcrAddress(2)) and (1'u32 shl 23)) != 0 # DE still 1 (1 word left)
+    check (dma.readRegister(dcrAddress(2)) and (1'u32 shl 23)) != 0
+      # DE still 1 (1 word left)
 
     # Second request
     stepped = dma.step(
-      proc(space: DmaMemorySpace, a: uint32): uint32 = mem.readMem(space, a),
-      proc(space: DmaMemorySpace, a: uint32, val: uint32) = mem.writeMem(space, a, val),
-      proc(reqSource: int): bool = (reqSource == 11 and esaiRxReq)
+      proc(space: DmaMemorySpace, a: uint32): uint32 =
+        mem.readMem(space, a),
+      proc(space: DmaMemorySpace, a: uint32, val: uint32) =
+        mem.writeMem(space, a, val),
+      proc(reqSource: int): bool =
+        (reqSource == 11 and esaiRxReq),
     )
     check stepped
     check mem.readMem(dmsX, 0x6001) == 0xCAFE02'u32
-    check (dma.readRegister(dcrAddress(2)) and (1'u32 shl 23)) == 0 # DE cleared on completion
+    check (dma.readRegister(dcrAddress(2)) and (1'u32 shl 23)) == 0
+      # DE cleared on completion
     check (dma.readRegister(DMA_DSTR) and DSTR_CHTD2) != 0

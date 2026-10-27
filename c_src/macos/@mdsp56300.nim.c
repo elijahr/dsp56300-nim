@@ -1072,4 +1072,3 @@ N_LIB_PRIVATE N_NIMCALL(void, dsp56300_NimMainModule)(void) {
 {
 }
 }
-

@@ -9,29 +9,30 @@ import ./timers
 
 export hdi08, esai, dma, timers
 
-type
-  Peripherals56311* = ref object
-    hdi08*: Hdi08
-    esai*: DualEsai
-    dma*: DmaController
-    timers*: TripleTimerModule
-    readMem*: MemReader
-    writeMem*: MemWriter
-    extIrq*: array[4, bool] # IRQA..D
+type Peripherals56311* = ref object
+  hdi08*: Hdi08
+  esai*: DualEsai
+  dma*: DmaController
+  timers*: TripleTimerModule
+  readMem*: MemReader
+  writeMem*: MemWriter
+  extIrq*: array[4, bool] # IRQA..D
 
 proc reset*(self: Peripherals56311) =
   self.hdi08.reset()
   self.esai.reset()
   self.dma.reset()
   self.timers.reset()
-  for i in 0..3:
+  for i in 0 .. 3:
     self.extIrq[i] = false
 
 proc newPeripherals56311*(): Peripherals56311 =
   new(result)
   result.reset()
 
-proc setMemoryAccessors*(self: Peripherals56311, readProc: MemReader, writeProc: MemWriter) =
+proc setMemoryAccessors*(
+    self: Peripherals56311, readProc: MemReader, writeProc: MemWriter
+) =
   self.readMem = readProc
   self.writeMem = writeProc
 
@@ -79,9 +80,9 @@ proc hostWrite8*(self: Peripherals56311, regOffset: uint8, val: uint8) =
 
 proc queryDmaRequest*(self: Peripherals56311, reqSource: int): bool =
   case reqSource
-  of 0..3:
+  of 0 .. 3:
     result = self.extIrq[reqSource]
-  of 4..9:
+  of 4 .. 9:
     # DMA Ch 0..5 Done
     let ch = reqSource - 4
     result = (self.dma.dstr and (1'u32 shl (ch + 16))) != 0
@@ -112,57 +113,82 @@ proc step*(self: Peripherals56311, cycles: int = 1) =
 
   # Step DMA Engine only if any channel is active
   var anyDma = false
-  for ch in 0..5:
+  for ch in 0 .. 5:
     if (self.dma.channels[ch].dcr and (1'u32 shl 23)) != 0:
       anyDma = true
       break
   if anyDma and self.readMem != nil and self.writeMem != nil:
     let rProc = self.readMem
     let wProc = self.writeMem
-    discard self.dma.step(rProc, wProc, proc(src: int): bool = self.queryDmaRequest(src))
+    discard self.dma.step(
+      rProc,
+      wProc,
+      proc(src: int): bool =
+        self.queryDmaRequest(src),
+    )
 
 # ------------------------------------------------------------- C11 Export ABI
 
-proc dsp56311_peripherals_create*(): pointer {.cdecl, exportc: "dsp56311_peripherals_create".} =
+proc dsp56311_peripherals_create*(): pointer {.
+    cdecl, exportc: "dsp56311_peripherals_create"
+.} =
   let p = newPeripherals56311()
   when declared(GC_ref):
     GC_ref(p)
   result = cast[pointer](p)
 
-proc dsp56311_peripherals_destroy*(p: pointer) {.cdecl, exportc: "dsp56311_peripherals_destroy".} =
+proc dsp56311_peripherals_destroy*(
+    p: pointer
+) {.cdecl, exportc: "dsp56311_peripherals_destroy".} =
   if p != nil:
     let peri = cast[Peripherals56311](p)
     when declared(GC_unref):
       GC_unref(peri)
 
-proc dsp56311_peripherals_reset*(p: pointer) {.cdecl, exportc: "dsp56311_peripherals_reset".} =
+proc dsp56311_peripherals_reset*(
+    p: pointer
+) {.cdecl, exportc: "dsp56311_peripherals_reset".} =
   if p != nil:
     cast[Peripherals56311](p).reset()
 
-proc dsp56311_peripherals_read_x*(p: pointer, addrVal: uint32): uint32 {.cdecl, exportc: "dsp56311_peripherals_read_x".} =
+proc dsp56311_peripherals_read_x*(
+    p: pointer, addrVal: uint32
+): uint32 {.cdecl, exportc: "dsp56311_peripherals_read_x".} =
   if p != nil:
     result = cast[Peripherals56311](p).readX(addrVal)
 
-proc dsp56311_peripherals_write_x*(p: pointer, addrVal: uint32, val: uint32) {.cdecl, exportc: "dsp56311_peripherals_write_x".} =
+proc dsp56311_peripherals_write_x*(
+    p: pointer, addrVal: uint32, val: uint32
+) {.cdecl, exportc: "dsp56311_peripherals_write_x".} =
   if p != nil:
     cast[Peripherals56311](p).writeX(addrVal, val)
 
-proc dsp56311_peripherals_read_y*(p: pointer, addrVal: uint32): uint32 {.cdecl, exportc: "dsp56311_peripherals_read_y".} =
+proc dsp56311_peripherals_read_y*(
+    p: pointer, addrVal: uint32
+): uint32 {.cdecl, exportc: "dsp56311_peripherals_read_y".} =
   if p != nil:
     result = cast[Peripherals56311](p).readY(addrVal)
 
-proc dsp56311_peripherals_write_y*(p: pointer, addrVal: uint32, val: uint32) {.cdecl, exportc: "dsp56311_peripherals_write_y".} =
+proc dsp56311_peripherals_write_y*(
+    p: pointer, addrVal: uint32, val: uint32
+) {.cdecl, exportc: "dsp56311_peripherals_write_y".} =
   if p != nil:
     cast[Peripherals56311](p).writeY(addrVal, val)
 
-proc dsp56311_peripherals_host_read8*(p: pointer, regOffset: uint8): uint8 {.cdecl, exportc: "dsp56311_peripherals_host_read8".} =
+proc dsp56311_peripherals_host_read8*(
+    p: pointer, regOffset: uint8
+): uint8 {.cdecl, exportc: "dsp56311_peripherals_host_read8".} =
   if p != nil:
     result = cast[Peripherals56311](p).hostRead8(regOffset)
 
-proc dsp56311_peripherals_host_write8*(p: pointer, regOffset: uint8, val: uint8) {.cdecl, exportc: "dsp56311_peripherals_host_write8".} =
+proc dsp56311_peripherals_host_write8*(
+    p: pointer, regOffset: uint8, val: uint8
+) {.cdecl, exportc: "dsp56311_peripherals_host_write8".} =
   if p != nil:
     cast[Peripherals56311](p).hostWrite8(regOffset, val)
 
-proc dsp56311_peripherals_step*(p: pointer, cycles: uint32) {.cdecl, exportc: "dsp56311_peripherals_step".} =
+proc dsp56311_peripherals_step*(
+    p: pointer, cycles: uint32
+) {.cdecl, exportc: "dsp56311_peripherals_step".} =
   if p != nil:
     cast[Peripherals56311](p).step(int(cycles))

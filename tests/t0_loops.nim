@@ -6,7 +6,6 @@ import dsp56300/state
 import dsp56300/loops
 
 suite "DSP56300 Hardware Loop Engine":
-
   test "Basic DO Loop Execution and Normal Termination":
     var s: Dsp56300State
     s.reset()

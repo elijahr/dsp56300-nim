@@ -6,7 +6,6 @@ import dsp56300/state
 import dsp56300/agu
 
 suite "DSP56300 Address Generation Unit (AGU)":
-
   test "Linear Addressing (Mn = $FFFFFF)":
     var s: Dsp56300State
     s.reset()
@@ -52,7 +51,7 @@ suite "DSP56300 Address Generation Unit (AGU)":
     s.m[1] = 0x000004'u32 # Modulo 5
 
     # Step forward 4 times: 1000 -> 1001 -> 1002 -> 1003 -> 1004
-    for i in 0..3:
+    for i in 0 .. 3:
       let ea = s.aguCalculateEffectiveAddress(1, AguPostInc)
       check ea == uint32(0x001000 + i)
 
@@ -80,8 +79,10 @@ suite "DSP56300 Address Generation Unit (AGU)":
     s.m[2] = 0x000000'u32 # Reverse carry
     s.n[2] = 0x000004'u32 # Step 4
 
-    let expected = [0x000000'u32, 0x000004'u32, 0x000002'u32, 0x000006'u32,
-                    0x000001'u32, 0x000005'u32, 0x000003'u32, 0x000007'u32]
+    let expected = [
+      0x000000'u32, 0x000004'u32, 0x000002'u32, 0x000006'u32, 0x000001'u32,
+      0x000005'u32, 0x000003'u32, 0x000007'u32,
+    ]
 
     for exp in expected:
       let ea = s.aguCalculateEffectiveAddress(2, AguPostIncOffset)

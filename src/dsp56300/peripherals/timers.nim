@@ -18,18 +18,18 @@ const
   TIMERS_TPCR* = 0xFFFF82'u32
   TIMERS_TPLR* = 0xFFFF83'u32
 
-  TCSR_TE*   = 1'u32 shl 0
+  TCSR_TE* = 1'u32 shl 0
   TCSR_TOIE* = 1'u32 shl 1
   TCSR_TCIE* = 1'u32 shl 2
   TCSR_TC_MASK* = 0x0F'u32 shl 4
-  TCSR_INV*  = 1'u32 shl 8
-  TCSR_TRM*  = 1'u32 shl 9
-  TCSR_DIR*  = 1'u32 shl 11
-  TCSR_DI*   = 1'u32 shl 12
-  TCSR_DO*   = 1'u32 shl 13
-  TCSR_PCE*  = 1'u32 shl 15
-  TCSR_TOF*  = 1'u32 shl 20
-  TCSR_TCF*  = 1'u32 shl 21
+  TCSR_INV* = 1'u32 shl 8
+  TCSR_TRM* = 1'u32 shl 9
+  TCSR_DIR* = 1'u32 shl 11
+  TCSR_DI* = 1'u32 shl 12
+  TCSR_DO* = 1'u32 shl 13
+  TCSR_PCE* = 1'u32 shl 15
+  TCSR_TOF* = 1'u32 shl 20
+  TCSR_TCF* = 1'u32 shl 21
 
   TPLR_PL_MASK* = 0x001FFFFF'u32
 
@@ -54,7 +54,7 @@ proc dmaRequestSource*(self: TripleTimerModule, t: int): int =
 proc reset*(self: var TripleTimerModule) =
   self.tplr = 0'u32
   self.tpcr = 0'u32
-  for t in 0..2:
+  for t in 0 .. 2:
     self.timers[t].tcsr = 0'u32
     self.timers[t].tlr = 0'u32
     self.timers[t].tcpr = 0'u32
@@ -82,7 +82,7 @@ proc readRegister*(self: TripleTimerModule, a: uint32): uint32 =
   of TIMERS_TPLR:
     result = self.tplr
   else:
-    for t in 0..2:
+    for t in 0 .. 2:
       if a == tcsrAddress(t):
         return self.timers[t].tcsr
       elif a == tlrAddress(t):
@@ -102,7 +102,7 @@ proc writeRegister*(self: var TripleTimerModule, a: uint32, val: uint32) =
     self.tplr = v
     self.tpcr = v and TPLR_PL_MASK # writing TPLR initializes prescaler count
   else:
-    for t in 0..2:
+    for t in 0 .. 2:
       if a == tcsrAddress(t):
         let oldTcsr = self.timers[t].tcsr
         # Bit 21 (TCF) and Bit 20 (TOF) are cleared by writing a 1
@@ -140,7 +140,7 @@ proc stepTimer(timer: var TimerUnit) =
     return
 
   let trm = (tcsr and TCSR_TRM) != 0
-  
+
   if timer.justEnabled:
     timer.justEnabled = false
     timer.tcr = timer.tlr
@@ -160,10 +160,12 @@ proc stepTimer(timer: var TimerUnit) =
     timer.tcsr = timer.tcsr or TCSR_TCF
 
 proc step*(self: var TripleTimerModule, clockCycles: int = 1) =
-  let anyEnabled = ((self.timers[0].tcsr or self.timers[1].tcsr or self.timers[2].tcsr) and TCSR_TE) != 0
+  let anyEnabled =
+    ((self.timers[0].tcsr or self.timers[1].tcsr or self.timers[2].tcsr) and TCSR_TE) !=
+    0
   if not anyEnabled:
     return
-  for _ in 0..<clockCycles:
+  for _ in 0 ..< clockCycles:
     # 1. Step Prescaler
     var prescalerTick = false
     if self.tpcr > 0:
@@ -173,7 +175,7 @@ proc step*(self: var TripleTimerModule, clockCycles: int = 1) =
       prescalerTick = true
 
     # 2. Step each timer
-    for t in 0..2:
+    for t in 0 .. 2:
       let tcsr = self.timers[t].tcsr
       if (tcsr and TCSR_TE) == 0:
         continue

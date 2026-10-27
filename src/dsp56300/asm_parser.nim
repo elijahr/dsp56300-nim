@@ -23,103 +23,168 @@ type
 func parseRegId*(token: string): (bool, RegId) =
   let t = token.strip().toUpperAscii()
   case t
-  of "X0": (true, RegId.regX0)
-  of "X1": (true, RegId.regX1)
-  of "Y0": (true, RegId.regY0)
-  of "Y1": (true, RegId.regY1)
-  of "A0": (true, RegId.regA0)
-  of "A1": (true, RegId.regA1)
-  of "A2": (true, RegId.regA2)
-  of "A":  (true, RegId.regA)
-  of "B0": (true, RegId.regB0)
-  of "B1": (true, RegId.regB1)
-  of "B2": (true, RegId.regB2)
-  of "B":  (true, RegId.regB)
-  of "R0": (true, RegId.regR0)
-  of "R1": (true, RegId.regR1)
-  of "R2": (true, RegId.regR2)
-  of "R3": (true, RegId.regR3)
-  of "R4": (true, RegId.regR4)
-  of "R5": (true, RegId.regR5)
-  of "R6": (true, RegId.regR6)
-  of "R7": (true, RegId.regR7)
-  of "N0": (true, RegId.regN0)
-  of "N1": (true, RegId.regN1)
-  of "N2": (true, RegId.regN2)
-  of "N3": (true, RegId.regN3)
-  of "N4": (true, RegId.regN4)
-  of "N5": (true, RegId.regN5)
-  of "N6": (true, RegId.regN6)
-  of "N7": (true, RegId.regN7)
-  of "M0": (true, RegId.regM0)
-  of "M1": (true, RegId.regM1)
-  of "M2": (true, RegId.regM2)
-  of "M3": (true, RegId.regM3)
-  of "M4": (true, RegId.regM4)
-  of "M5": (true, RegId.regM5)
-  of "M6": (true, RegId.regM6)
-  of "M7": (true, RegId.regM7)
-  of "SR":  (true, RegId.regSR)
-  of "OMR": (true, RegId.regOMR)
-  of "SP":  (true, RegId.regSP)
-  of "SSH": (true, RegId.regSSH)
-  of "SSL": (true, RegId.regSSL)
-  of "LA":  (true, RegId.regLA)
-  of "LC":  (true, RegId.regLC)
-  of "EP":  (true, RegId.regEP)
-  of "VBA": (true, RegId.regVBA)
-  of "SC":  (true, RegId.regSC)
-  of "SZ":  (true, RegId.regSZ)
-  else: (false, RegId.regNone)
+  of "X0":
+    (true, RegId.regX0)
+  of "X1":
+    (true, RegId.regX1)
+  of "Y0":
+    (true, RegId.regY0)
+  of "Y1":
+    (true, RegId.regY1)
+  of "A0":
+    (true, RegId.regA0)
+  of "A1":
+    (true, RegId.regA1)
+  of "A2":
+    (true, RegId.regA2)
+  of "A":
+    (true, RegId.regA)
+  of "B0":
+    (true, RegId.regB0)
+  of "B1":
+    (true, RegId.regB1)
+  of "B2":
+    (true, RegId.regB2)
+  of "B":
+    (true, RegId.regB)
+  of "R0":
+    (true, RegId.regR0)
+  of "R1":
+    (true, RegId.regR1)
+  of "R2":
+    (true, RegId.regR2)
+  of "R3":
+    (true, RegId.regR3)
+  of "R4":
+    (true, RegId.regR4)
+  of "R5":
+    (true, RegId.regR5)
+  of "R6":
+    (true, RegId.regR6)
+  of "R7":
+    (true, RegId.regR7)
+  of "N0":
+    (true, RegId.regN0)
+  of "N1":
+    (true, RegId.regN1)
+  of "N2":
+    (true, RegId.regN2)
+  of "N3":
+    (true, RegId.regN3)
+  of "N4":
+    (true, RegId.regN4)
+  of "N5":
+    (true, RegId.regN5)
+  of "N6":
+    (true, RegId.regN6)
+  of "N7":
+    (true, RegId.regN7)
+  of "M0":
+    (true, RegId.regM0)
+  of "M1":
+    (true, RegId.regM1)
+  of "M2":
+    (true, RegId.regM2)
+  of "M3":
+    (true, RegId.regM3)
+  of "M4":
+    (true, RegId.regM4)
+  of "M5":
+    (true, RegId.regM5)
+  of "M6":
+    (true, RegId.regM6)
+  of "M7":
+    (true, RegId.regM7)
+  of "SR":
+    (true, RegId.regSR)
+  of "OMR":
+    (true, RegId.regOMR)
+  of "SP":
+    (true, RegId.regSP)
+  of "SSH":
+    (true, RegId.regSSH)
+  of "SSL":
+    (true, RegId.regSSL)
+  of "LA":
+    (true, RegId.regLA)
+  of "LC":
+    (true, RegId.regLC)
+  of "EP":
+    (true, RegId.regEP)
+  of "VBA":
+    (true, RegId.regVBA)
+  of "SC":
+    (true, RegId.regSC)
+  of "SZ":
+    (true, RegId.regSZ)
+  else:
+    (false, RegId.regNone)
 
 func parseConditionCode*(token: string): (bool, ConditionCode) =
   let t = token.strip().toUpperAscii()
   case t
-  of "EQ", "CCEQ", "JEQ": (true, ConditionCode.ccEQ)
-  of "NE", "CCNE", "JNE": (true, ConditionCode.ccNE)
-  of "CS", "CCCS", "JCS", "LO", "CCLO", "JLO": (true, ConditionCode.ccLO)
-  of "CC", "CCCC", "JCC", "HS", "CCHS", "JHS": (true, ConditionCode.ccHS)
-  of "MI", "CCMI", "JMI": (true, ConditionCode.ccMI)
-  of "PL", "CCPL", "JPL": (true, ConditionCode.ccPL)
-  of "GE", "CCGE", "JGE": (true, ConditionCode.ccGE)
-  of "LT", "CCLT", "JLT": (true, ConditionCode.ccLT)
-  of "GT", "CCGT", "JGT": (true, ConditionCode.ccGT)
-  of "LE", "CCLE", "JLE": (true, ConditionCode.ccLE)
-  of "LC", "CCLC", "JLC": (true, ConditionCode.ccLC)
-  of "LS", "CCLS", "JLS": (true, ConditionCode.ccLS)
-  of "EC", "CCEC", "JEC": (true, ConditionCode.ccEC)
-  of "ES", "CCES", "JES": (true, ConditionCode.ccES)
-  of "NN", "CCNN", "JNN": (true, ConditionCode.ccNN)
-  of "NR", "CCNR", "JNR": (true, ConditionCode.ccNR)
-  else: (false, ConditionCode.ccEQ)
+  of "EQ", "CCEQ", "JEQ":
+    (true, ConditionCode.ccEQ)
+  of "NE", "CCNE", "JNE":
+    (true, ConditionCode.ccNE)
+  of "CS", "CCCS", "JCS", "LO", "CCLO", "JLO":
+    (true, ConditionCode.ccLO)
+  of "CC", "CCCC", "JCC", "HS", "CCHS", "JHS":
+    (true, ConditionCode.ccHS)
+  of "MI", "CCMI", "JMI":
+    (true, ConditionCode.ccMI)
+  of "PL", "CCPL", "JPL":
+    (true, ConditionCode.ccPL)
+  of "GE", "CCGE", "JGE":
+    (true, ConditionCode.ccGE)
+  of "LT", "CCLT", "JLT":
+    (true, ConditionCode.ccLT)
+  of "GT", "CCGT", "JGT":
+    (true, ConditionCode.ccGT)
+  of "LE", "CCLE", "JLE":
+    (true, ConditionCode.ccLE)
+  of "LC", "CCLC", "JLC":
+    (true, ConditionCode.ccLC)
+  of "LS", "CCLS", "JLS":
+    (true, ConditionCode.ccLS)
+  of "EC", "CCEC", "JEC":
+    (true, ConditionCode.ccEC)
+  of "ES", "CCES", "JES":
+    (true, ConditionCode.ccES)
+  of "NN", "CCNN", "JNN":
+    (true, ConditionCode.ccNN)
+  of "NR", "CCNR", "JNR":
+    (true, ConditionCode.ccNR)
+  else:
+    (false, ConditionCode.ccEQ)
 
 # ------------------------------------------------------------- Literal Parsing
 
 proc parseNumberLit*(token: string, symbols: Table[string, uint32]): uint32 =
   var t = token.strip()
   if t.startsWith("#"):
-    t = t[1..^1].strip()
-  
+    t = t[1 ..^ 1].strip()
+
   if t in symbols:
     return symbols[t]
 
   var isNeg = false
   if t.startsWith("-"):
     isNeg = true
-    t = t[1..^1].strip()
+    t = t[1 ..^ 1].strip()
 
   var val: uint32 = 0
   if t.startsWith("$"):
     var hexVal = 0
-    discard parseHex(t[1..^1], hexVal)
+    discard parseHex(t[1 ..^ 1], hexVal)
     val = uint32(hexVal)
   elif t.startsWith("0x") or t.startsWith("0X"):
     var hexVal = 0
-    discard parseHex(t[2..^1], hexVal)
+    discard parseHex(t[2 ..^ 1], hexVal)
     val = uint32(hexVal)
   elif t.startsWith("%"):
     var binVal = 0
-    discard parseBin(t[1..^1], binVal)
+    discard parseBin(t[1 ..^ 1], binVal)
     val = uint32(binVal)
   else:
     var intVal = 0
@@ -128,7 +193,8 @@ proc parseNumberLit*(token: string, symbols: Table[string, uint32]): uint32 =
     elif t in symbols:
       val = symbols[t]
     else:
-      raise newException(ValueError, "Unknown symbol or invalid literal: '" & token & "'")
+      raise
+        newException(ValueError, "Unknown symbol or invalid literal: '" & token & "'")
 
   if isNeg:
     let signedVal = -int32(val)
@@ -139,7 +205,9 @@ proc parseNumberLit*(token: string, symbols: Table[string, uint32]): uint32 =
 
 type
   MemOpKind* = enum
-    mopNone, mopAbsolute, mopIndirect
+    mopNone
+    mopAbsolute
+    mopIndirect
 
   MemOperand* = object
     space*: MemSpace
@@ -153,13 +221,13 @@ proc parseMemOperand*(token: string, symbols: Table[string, uint32]): MemOperand
   var space = MemSpace.memX
   if t.startsWith("X:") or t.startsWith("x:"):
     space = MemSpace.memX
-    t = t[2..^1].strip()
+    t = t[2 ..^ 1].strip()
   elif t.startsWith("Y:") or t.startsWith("y:"):
     space = MemSpace.memY
-    t = t[2..^1].strip()
+    t = t[2 ..^ 1].strip()
   elif t.startsWith("P:") or t.startsWith("p:"):
     space = MemSpace.memP
-    t = t[2..^1].strip()
+    t = t[2 ..^ 1].strip()
   else:
     return MemOperand(kind: mopNone)
 
@@ -168,20 +236,20 @@ proc parseMemOperand*(token: string, symbols: Table[string, uint32]): MemOperand
     var isPreDec = false
     if t.startsWith("-"):
       isPreDec = true
-      t = t[1..^1]
-    
+      t = t[1 ..^ 1]
+
     let closeIdx = t.find(')')
     if closeIdx < 0:
       return MemOperand(kind: mopNone)
-    
-    let rToken = t[1..<closeIdx].strip().toUpperAscii()
+
+    let rToken = t[1 ..< closeIdx].strip().toUpperAscii()
     if not rToken.startsWith("R") or rToken.len != 2:
       return MemOperand(kind: mopNone)
     let rNum = uint8(ord(rToken[1]) - ord('0'))
     if rNum > 7:
       return MemOperand(kind: mopNone)
 
-    let postFix = t[(closeIdx + 1)..^1].strip().toUpperAscii()
+    let postFix = t[(closeIdx + 1) ..^ 1].strip().toUpperAscii()
     var mode = AddrMode.amNoUpdate
     if isPreDec:
       mode = AddrMode.amPreDec
@@ -221,10 +289,14 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
 
   template advancePc(delta: uint32 = 1) =
     case curSpace
-    of MemSpace.memP: pcP += delta
-    of MemSpace.memX: pcX += delta
-    of MemSpace.memY: pcY += delta
-    else: pcP += delta
+    of MemSpace.memP:
+      pcP += delta
+    of MemSpace.memX:
+      pcX += delta
+    of MemSpace.memY:
+      pcY += delta
+    else:
+      pcP += delta
 
   # ----------------------------------------------------------- Pass 1: Symbol Definition
   # ----------------------------------------------------------- Pass 1: Label Collection & Sizing
@@ -242,11 +314,14 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
       var line = rawLine
       # Strip comments (; or // or #)
       let cIdx = line.find(';')
-      if cIdx >= 0: line = line[0..<cIdx]
+      if cIdx >= 0:
+        line = line[0 ..< cIdx]
       let c2Idx = line.find("//")
-      if c2Idx >= 0: line = line[0..<c2Idx]
+      if c2Idx >= 0:
+        line = line[0 ..< c2Idx]
       line = line.strip()
-      if line.len == 0: continue
+      if line.len == 0:
+        continue
 
       # Check EQU: "label EQU $0010" or "label: EQU $0010"
       let parts = line.splitWhitespace()
@@ -263,33 +338,36 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
         let target = parts[1].strip()
         if target.startsWith("P:") or target.startsWith("p:"):
           curSpace = MemSpace.memP
-          pcP = parseNumberLit(target[2..^1], symbols)
+          pcP = parseNumberLit(target[2 ..^ 1], symbols)
         elif target.startsWith("X:") or target.startsWith("x:"):
           curSpace = MemSpace.memX
-          pcX = parseNumberLit(target[2..^1], symbols)
+          pcX = parseNumberLit(target[2 ..^ 1], symbols)
         elif target.startsWith("Y:") or target.startsWith("y:"):
           curSpace = MemSpace.memY
-          pcY = parseNumberLit(target[2..^1], symbols)
+          pcY = parseNumberLit(target[2 ..^ 1], symbols)
         continue
 
       var codeLine = line
       # Check if starts with a label: e.g. "loop_top:" or "loop_top"
       var label = ""
-      if not (parts[0].toUpperAscii() in [
-        "NOP", "RTS", "RTI", "RESET", "WAIT", "STOP", "ENDDO", "JMP", "JSR", "JCC",
-        "JEQ", "JNE", "JCS", "JHS", "JLO", "JMI", "JPL", "JGE", "JLT", "JGT", "JLE", "JLC", "JLS", "JEC", "JES", "JNN", "JNR",
-        "CLR", "ADD", "SUB", "CMP", "AND", "OR", "EOR", "NOT", "MPY", "MAC", "MACR",
-        "ASL", "ASR", "LSR", "NEG", "ABS", "TFR", "TST", "RND", "DO", "REP", "MOVE", "DC", "DS"
-      ]):
+      if not (
+        parts[0].toUpperAscii() in [
+          "NOP", "RTS", "RTI", "RESET", "WAIT", "STOP", "ENDDO", "JMP", "JSR", "JCC",
+          "JEQ", "JNE", "JCS", "JHS", "JLO", "JMI", "JPL", "JGE", "JLT", "JGT", "JLE",
+          "JLC", "JLS", "JEC", "JES", "JNN", "JNR", "CLR", "ADD", "SUB", "CMP", "AND",
+          "OR", "EOR", "NOT", "MPY", "MAC", "MACR", "ASL", "ASR", "LSR", "NEG", "ABS",
+          "TFR", "TST", "RND", "DO", "REP", "MOVE", "DC", "DS",
+        ]
+      ):
         if parts[0].endsWith(":"):
-          label = parts[0][0..^2]
-          codeLine = line[parts[0].len..^1].strip()
+          label = parts[0][0 ..^ 2]
+          codeLine = line[parts[0].len ..^ 1].strip()
         elif parts.len == 1:
           label = parts[0]
           codeLine = ""
         else:
           label = parts[0]
-          codeLine = line[parts[0].len..^1].strip()
+          codeLine = line[parts[0].len ..^ 1].strip()
 
         if label.len > 0:
           if not symbols.hasKey(label) or symbols[label] != getPc():
@@ -306,14 +384,14 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
       of "DO":
         advancePc(2)
       of "DC", "DC.W":
-        let args = codeLine[mnem.len..^1].split(',')
+        let args = codeLine[mnem.len ..^ 1].split(',')
         advancePc(uint32(args.len))
       of "DS":
         let cnt = parseNumberLit(cparts[1], symbols)
         advancePc(cnt)
       of "MOVE":
         # Move short vs move 24 vs move mem abs vs move mem ind
-        let rest = codeLine[mnem.len..^1].strip()
+        let rest = codeLine[mnem.len ..^ 1].strip()
         let ops = rest.split(',')
         if ops.len >= 2:
           let s = ops[0].strip()
@@ -325,27 +403,38 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
           if s.startsWith("#"):
             let imm = parseNumberLit(s, symbols)
             let sRaw = s.strip()
-            let isExplicit24 = (sRaw.startsWith("#$") or sRaw.startsWith("#0x") or sRaw.startsWith("#0X")) and sRaw.len > 5
+            let isExplicit24 =
+              (
+                sRaw.startsWith("#$") or sRaw.startsWith("#0x") or sRaw.startsWith(
+                  "#0X"
+                )
+              ) and sRaw.len > 5
             if imm > 0xFF'u32 or isExplicit24:
               advancePc(2)
             else:
               advancePc(1)
-          elif (sUpper.startsWith("X:") or sUpper.startsWith("Y:")) and not s.contains("("):
+          elif (sUpper.startsWith("X:") or sUpper.startsWith("Y:")) and
+              not s.contains("("):
             advancePc(2)
-          elif (dUpper.startsWith("X:") or dUpper.startsWith("Y:")) and not d.contains("("):
+          elif (dUpper.startsWith("X:") or dUpper.startsWith("Y:")) and
+              not d.contains("("):
             advancePc(2)
           else:
             advancePc(1)
         else:
           advancePc(1)
-      of "JMP", "JSR", "JCC",
-         "JEQ", "JNE", "JCS", "JHS", "JLO", "JMI", "JPL",
-         "JGE", "JLT", "JGT", "JLE", "JLC", "JLS", "JEC", "JES", "JNN", "JNR":
-        let rest = if codeLine.len > cparts[0].len: codeLine[cparts[0].len..^1].strip() else: ""
+      of "JMP", "JSR", "JCC", "JEQ", "JNE", "JCS", "JHS", "JLO", "JMI", "JPL", "JGE",
+          "JLT", "JGT", "JLE", "JLC", "JLS", "JEC", "JES", "JNN", "JNR":
+        let rest =
+          if codeLine.len > cparts[0].len:
+            codeLine[cparts[0].len ..^ 1].strip()
+          else:
+            ""
         var targetStr = rest
         if mnem == "JCC":
           let ops = rest.split(',')
-          if ops.len >= 2: targetStr = ops[1].strip()
+          if ops.len >= 2:
+            targetStr = ops[1].strip()
         var isLong = (lineIdx in longBranches)
         if not isLong:
           if symbols.hasKey(targetStr):
@@ -382,11 +471,14 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
   for lineIdx, rawLine in lines:
     var line = rawLine
     let cIdx = line.find(';')
-    if cIdx >= 0: line = line[0..<cIdx]
+    if cIdx >= 0:
+      line = line[0 ..< cIdx]
     let c2Idx = line.find("//")
-    if c2Idx >= 0: line = line[0..<c2Idx]
+    if c2Idx >= 0:
+      line = line[0 ..< c2Idx]
     line = line.strip()
-    if line.len == 0: continue
+    if line.len == 0:
+      continue
 
     let parts = line.splitWhitespace()
     if parts.len >= 3 and parts[1].toUpperAscii() == "EQU":
@@ -396,26 +488,29 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
       let target = parts[1].strip()
       if target.startsWith("P:") or target.startsWith("p:"):
         curSpace = MemSpace.memP
-        pcP = parseNumberLit(target[2..^1], symbols)
+        pcP = parseNumberLit(target[2 ..^ 1], symbols)
       elif target.startsWith("X:") or target.startsWith("x:"):
         curSpace = MemSpace.memX
-        pcX = parseNumberLit(target[2..^1], symbols)
+        pcX = parseNumberLit(target[2 ..^ 1], symbols)
       elif target.startsWith("Y:") or target.startsWith("y:"):
         curSpace = MemSpace.memY
-        pcY = parseNumberLit(target[2..^1], symbols)
+        pcY = parseNumberLit(target[2 ..^ 1], symbols)
       continue
 
     var codeLine = line
-    if not (parts[0].toUpperAscii() in [
-      "NOP", "RTS", "RTI", "RESET", "WAIT", "STOP", "ENDDO", "JMP", "JSR", "JCC",
-      "JEQ", "JNE", "JCS", "JHS", "JLO", "JMI", "JPL", "JGE", "JLT", "JGT", "JLE", "JLC", "JLS", "JEC", "JES", "JNN", "JNR",
-      "CLR", "ADD", "SUB", "CMP", "AND", "OR", "EOR", "NOT", "MPY", "MAC", "MACR",
-      "ASL", "ASR", "LSR", "NEG", "ABS", "TFR", "TST", "RND", "DO", "REP", "MOVE", "DC", "DS"
-    ]):
+    if not (
+      parts[0].toUpperAscii() in [
+        "NOP", "RTS", "RTI", "RESET", "WAIT", "STOP", "ENDDO", "JMP", "JSR", "JCC",
+        "JEQ", "JNE", "JCS", "JHS", "JLO", "JMI", "JPL", "JGE", "JLT", "JGT", "JLE",
+        "JLC", "JLS", "JEC", "JES", "JNN", "JNR", "CLR", "ADD", "SUB", "CMP", "AND",
+        "OR", "EOR", "NOT", "MPY", "MAC", "MACR", "ASL", "ASR", "LSR", "NEG", "ABS",
+        "TFR", "TST", "RND", "DO", "REP", "MOVE", "DC", "DS",
+      ]
+    ):
       if parts[0].endsWith(":") or parts.len == 1:
-        codeLine = line[parts[0].len..^1].strip()
+        codeLine = line[parts[0].len ..^ 1].strip()
       else:
-        codeLine = line[parts[0].len..^1].strip()
+        codeLine = line[parts[0].len ..^ 1].strip()
 
     if codeLine.len == 0:
       continue
@@ -437,16 +532,23 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
 
     let cparts = codeLine.splitWhitespace()
     let mnem = cparts[0].toUpperAscii()
-    let operandStr = codeLine[cparts[0].len..^1].strip()
+    let operandStr = codeLine[cparts[0].len ..^ 1].strip()
 
     case mnem
-    of "NOP": emitWord(asmNop())
-    of "RTS": emitWord(asmRts())
-    of "RTI": emitWord(asmRti())
-    of "RESET": emitWord(asmReset())
-    of "WAIT": emitWord(asmWait())
-    of "STOP": emitWord(asmStop())
-    of "ENDDO": emitWord(asmEndDo())
+    of "NOP":
+      emitWord(asmNop())
+    of "RTS":
+      emitWord(asmRts())
+    of "RTI":
+      emitWord(asmRti())
+    of "RESET":
+      emitWord(asmReset())
+    of "WAIT":
+      emitWord(asmWait())
+    of "STOP":
+      emitWord(asmStop())
+    of "ENDDO":
+      emitWord(asmEndDo())
     of "JMP":
       let target = parseNumberLit(operandStr, symbols)
       if lineIdx in longBranches:
@@ -483,7 +585,8 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
           emitWord(w[1])
         else:
           emitWord(asmJcc(cond, target))
-    of "JEQ", "JNE", "JCS", "JHS", "JLO", "JMI", "JPL", "JGE", "JLT", "JGT", "JLE", "JLC", "JLS", "JEC", "JES", "JNN", "JNR":
+    of "JEQ", "JNE", "JCS", "JHS", "JLO", "JMI", "JPL", "JGE", "JLT", "JGT", "JLE",
+        "JLC", "JLS", "JEC", "JES", "JNN", "JNR":
       let (_, cond) = parseConditionCode(mnem)
       let target = parseNumberLit(operandStr, symbols)
       if lineIdx in longBranches:
@@ -531,7 +634,7 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
       var neg = false
       if s1Str.startsWith("-"):
         neg = true
-        s1Str = s1Str[1..^1].strip()
+        s1Str = s1Str[1 ..^ 1].strip()
       let (_, s1) = parseRegId(s1Str)
       let (_, s2) = parseRegId(ops[1])
       let (_, dst) = parseRegId(ops[2])
@@ -542,7 +645,7 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
       var neg = false
       if s1Str.startsWith("-"):
         neg = true
-        s1Str = s1Str[1..^1].strip()
+        s1Str = s1Str[1 ..^ 1].strip()
       let (_, s1) = parseRegId(s1Str)
       let (_, s2) = parseRegId(ops[1])
       let (_, dst) = parseRegId(ops[2])
@@ -553,7 +656,7 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
       var neg = false
       if s1Str.startsWith("-"):
         neg = true
-        s1Str = s1Str[1..^1].strip()
+        s1Str = s1Str[1 ..^ 1].strip()
       let (_, s1) = parseRegId(s1Str)
       let (_, s2) = parseRegId(ops[1])
       let (_, dst) = parseRegId(ops[2])
@@ -603,7 +706,7 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
         emitWord(parseNumberLit(v, symbols))
     of "DS":
       let cnt = parseNumberLit(operandStr, symbols)
-      for i in 0..<cnt:
+      for i in 0 ..< cnt:
         emitWord(0'u32)
     of "MOVE":
       let ops = operandStr.split(',')
@@ -617,8 +720,14 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
       elif s.startsWith("#") and isDstReg:
         let imm = parseNumberLit(s, symbols)
         let sRaw = s.strip()
-        let isExplicit24 = (sRaw.startsWith("#$") or sRaw.startsWith("#0x") or sRaw.startsWith("#0X")) and sRaw.len > 5
-        if not isExplicit24 and imm <= 0xFF'u32 and dstReg in {RegId.regX0, RegId.regX1, RegId.regY0, RegId.regY1, RegId.regA0, RegId.regB0, RegId.regA1, RegId.regB1, RegId.regA, RegId.regB}:
+        let isExplicit24 =
+          (sRaw.startsWith("#$") or sRaw.startsWith("#0x") or sRaw.startsWith("#0X")) and
+          sRaw.len > 5
+        if not isExplicit24 and imm <= 0xFF'u32 and
+            dstReg in {
+              RegId.regX0, RegId.regX1, RegId.regY0, RegId.regY1, RegId.regA0,
+              RegId.regB0, RegId.regA1, RegId.regB1, RegId.regA, RegId.regB,
+            }:
           emitWord(asmMoveImmShort(dstReg, uint8(imm)))
         else:
           let w = asmMoveImm24(dstReg, imm)
@@ -627,23 +736,28 @@ proc assembleText*(text: string, baseOrg: uint32 = 0): AsmResult =
       elif isDstReg:
         let memOp = parseMemOperand(s, symbols)
         if memOp.kind == mopAbsolute:
-          let w = asmMoveMemAbs(memOp.space, isWrite=false, dstReg, memOp.address)
+          let w = asmMoveMemAbs(memOp.space, isWrite = false, dstReg, memOp.address)
           emitWord(w[0])
           emitWord(w[1])
         elif memOp.kind == mopIndirect:
-          emitWord(asmMoveMemInd(memOp.space, isWrite=false, dstReg, memOp.rNum, memOp.mode))
+          emitWord(
+            asmMoveMemInd(memOp.space, isWrite = false, dstReg, memOp.rNum, memOp.mode)
+          )
         else:
           raise newException(ValueError, "Unsupported source operand in MOVE: " & s)
       elif isSrcReg:
         let memOp = parseMemOperand(d, symbols)
         if memOp.kind == mopAbsolute:
-          let w = asmMoveMemAbs(memOp.space, isWrite=true, srcReg, memOp.address)
+          let w = asmMoveMemAbs(memOp.space, isWrite = true, srcReg, memOp.address)
           emitWord(w[0])
           emitWord(w[1])
         elif memOp.kind == mopIndirect:
-          emitWord(asmMoveMemInd(memOp.space, isWrite=true, srcReg, memOp.rNum, memOp.mode))
+          emitWord(
+            asmMoveMemInd(memOp.space, isWrite = true, srcReg, memOp.rNum, memOp.mode)
+          )
         else:
-          raise newException(ValueError, "Unsupported destination operand in MOVE: " & d)
+          raise
+            newException(ValueError, "Unsupported destination operand in MOVE: " & d)
       else:
         raise newException(ValueError, "Unsupported MOVE syntax: " & codeLine)
     else:

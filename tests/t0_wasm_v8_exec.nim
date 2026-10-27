@@ -8,7 +8,6 @@ import std/[json, os, osproc, strformat, strutils, unittest]
 import dsp56300/[state, ir, runner, jit_native, jit_wasm]
 
 suite "DSP56300 WASM JIT V8 Live Execution Suite":
-
   test "Kernel 1: Biquad IIR Filter execution in V8 WebAssembly matches Cold Runner":
     var runnerState = newDspState()
     runnerState.pc = 0x300'u32

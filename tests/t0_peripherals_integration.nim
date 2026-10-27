@@ -8,30 +8,36 @@ import dsp56300/peripherals/esai
 import dsp56300/peripherals/dma
 import dsp56300/peripherals/timers
 
-type
-  SystemRam = object
-    xMem: array[0x10000, uint32]
-    yMem: array[0x10000, uint32]
-    pMem: array[0x10000, uint32]
+type SystemRam = object
+  xMem: array[0x10000, uint32]
+  yMem: array[0x10000, uint32]
+  pMem: array[0x10000, uint32]
 
 proc readRam(ram: var SystemRam, space: DmaMemorySpace, a: uint32): uint32 =
   let addr16 = a and 0xFFFF'u32
   case space
-  of dmsX: result = ram.xMem[addr16]
-  of dmsY: result = ram.yMem[addr16]
-  of dmsP: result = ram.pMem[addr16]
-  of dmsReserved: result = 0'u32
+  of dmsX:
+    result = ram.xMem[addr16]
+  of dmsY:
+    result = ram.yMem[addr16]
+  of dmsP:
+    result = ram.pMem[addr16]
+  of dmsReserved:
+    result = 0'u32
 
 proc writeRam(ram: var SystemRam, space: DmaMemorySpace, a: uint32, val: uint32) =
   let addr16 = a and 0xFFFF'u32
   case space
-  of dmsX: ram.xMem[addr16] = val and 0x00FFFFFF'u32
-  of dmsY: ram.yMem[addr16] = val and 0x00FFFFFF'u32
-  of dmsP: ram.pMem[addr16] = val and 0x00FFFFFF'u32
-  of dmsReserved: discard
+  of dmsX:
+    ram.xMem[addr16] = val and 0x00FFFFFF'u32
+  of dmsY:
+    ram.yMem[addr16] = val and 0x00FFFFFF'u32
+  of dmsP:
+    ram.pMem[addr16] = val and 0x00FFFFFF'u32
+  of dmsReserved:
+    discard
 
 suite "DSP56311 Unified Peripherals Subsystem":
-
   test "Memory-mapped address decoding across all peripheral blocks":
     var peri = newPeripherals56311()
 
@@ -74,7 +80,7 @@ suite "DSP56311 Unified Peripherals Subsystem":
         elif space == dmsY and a >= 0xFFFF80'u32:
           peri.writeY(a, val)
         else:
-          ram.writeRam(space, a, val)
+          ram.writeRam(space, a, val),
     )
 
     # Host enables HDI08 transmit by writing 3 bytes to TXH, TXM, TXL
@@ -89,7 +95,7 @@ suite "DSP56311 Unified Peripherals Subsystem":
     peri.writeX(dsrAddress(0), HDI08_HORX)
     peri.writeX(ddrAddress(0), 0x001000'u32)
     peri.writeX(dcoAddress(0), 0'u32) # 1 transfer
-    
+
     # DCR: DE=1 (bit 23), DTM=1 (word on req), DRS=16 (HDI08 RX),
     # DAM source: no inc (0), DAM dest: postinc (5) -> (0 shl 7) or (5 shl 4) = 0x50
     let dcrVal = (1'u32 shl 23) or (1'u32 shl 19) or (16'u32 shl 11) or 0x50'u32
@@ -126,14 +132,13 @@ suite "DSP56311 Unified Peripherals Subsystem":
         elif space == dmsY and a >= 0xFFFF80'u32:
           peri.writeY(a, val)
         else:
-          ram.writeRam(space, a, val)
+          ram.writeRam(space, a, val),
     )
 
     # Enable ESAI 0 transmitter: TE0=1 (bit 0 of TCR)
     peri.writeX(ESAI_TCR, 1'u32)
     peri.esai.stepFrame()
     # TDE is 1 -> DRS 12 (ESAI 0 TX) is asserted!
-
 
     # Preload RAM at 0x2000 with audio sample 0x55AA11
     ram.writeRam(dmsX, 0x2000, 0x55AA11'u32)

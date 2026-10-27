@@ -32,25 +32,29 @@ proc main() =
         outputFile = key
     of cmdLongOption, cmdShortOption:
       case key.toLowerAscii()
-      of "o", "out": outputFile = val
-      of "f", "format": format = val.toLowerAscii()
+      of "o", "out":
+        outputFile = val
+      of "f", "format":
+        format = val.toLowerAscii()
       of "b", "base":
         var h = 0
         if val.startsWith("$"):
-          discard parseHex(val[1..^1], h)
+          discard parseHex(val[1 ..^ 1], h)
         elif val.startsWith("0x") or val.startsWith("0X"):
-          discard parseHex(val[2..^1], h)
+          discard parseHex(val[2 ..^ 1], h)
         else:
           h = parseInt(val)
         baseOrg = uint32(h)
-      of "v", "verbose": verbose = true
+      of "v", "verbose":
+        verbose = true
       of "h", "help":
         printHelp()
         quit(0)
       else:
         echo "Unknown option: --", key
         quit(1)
-    of cmdEnd: break
+    of cmdEnd:
+      break
 
   if inputFile.len == 0:
     printHelp()

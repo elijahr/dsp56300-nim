@@ -5,7 +5,6 @@ import std/unittest
 import dsp56300/[decode_types, decode]
 
 suite "DSP56300 Opcode & Parallel Move Decoder":
-
   test "Decode NOP":
     let inst = decodeInstruction([0x000000'u32, 0'u32], 0x100'u32)
     check inst.words == 1

@@ -5,12 +5,11 @@ import std/unittest
 import dsp56300/peripherals/timers
 
 suite "DSP56311 Triple Timer Module":
-
   test "Reset state matches hardware specification":
     var timers = newTripleTimerModule()
     check timers.readRegister(TIMERS_TPLR) == 0'u32
     check timers.readRegister(TIMERS_TPCR) == 0'u32
-    for t in 0..2:
+    for t in 0 .. 2:
       check timers.readRegister(tcsrAddress(t)) == 0'u32
       check timers.readRegister(tcprAddress(t)) == 0'u32
       check timers.readRegister(tcrAddress(t)) == 0'u32
@@ -20,13 +19,13 @@ suite "DSP56311 Triple Timer Module":
 
   test "Timer 0 Mode 0 compare match and reload (TRM=1)":
     var timers = newTripleTimerModule()
-    
+
     # Configure Timer 0:
     # TLR0 = 10, TCPR0 = 15
     # TRM = 1 (bit 9), TCIE = 1 (bit 2), TE = 1 (bit 0)
     timers.writeRegister(tlrAddress(0), 10'u32)
     timers.writeRegister(tcprAddress(0), 15'u32)
-    
+
     # TCSR = (1 shl 9) [TRM] or (1 shl 2) [TCIE] or 1 [TE] = 0x000205
     let tcsrVal = (1'u32 shl 9) or (1'u32 shl 2) or 1'u32
     timers.writeRegister(tcsrAddress(0), tcsrVal)
@@ -40,7 +39,7 @@ suite "DSP56311 Triple Timer Module":
     # Step 5 more ticks: 11, 12, 13, 14, 15
     timers.step(5)
     check timers.readRegister(tcrAddress(0)) == 15'u32
-    
+
     # At compare match: TCF (bit 21) set, compare interrupt asserted, DMA DRS 18 asserted
     check (timers.readRegister(tcsrAddress(0)) and TCSR_TCF) != 0
     check timers.isCompareInterruptAsserted(0)
@@ -84,7 +83,7 @@ suite "DSP56311 Triple Timer Module":
   test "DMA Request Line mapping (Timers 0..2 -> DRS 18..20)":
     var timers = newTripleTimerModule()
 
-    for t in 0..2:
+    for t in 0 .. 2:
       timers.writeRegister(tlrAddress(t), 0'u32)
       timers.writeRegister(tcprAddress(t), 1'u32)
       timers.writeRegister(tcsrAddress(t), (1'u32 shl 9) or 1'u32) # TRM=1, TE=1

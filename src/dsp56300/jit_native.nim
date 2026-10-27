@@ -8,7 +8,9 @@ import dsp56300/[decode_types, state, memory, agu, ir, runner]
 
 when defined(macosx) and defined(arm64):
   proc pthread_jit_write_protect_np(enabled: cint) {.importc, header: "<pthread.h>".}
-  proc sys_icache_invalidate(p: pointer, len: csize_t) {.importc, header: "<libkern/OSCacheControl.h>".}
+  proc sys_icache_invalidate(
+    p: pointer, len: csize_t
+  ) {.importc, header: "<libkern/OSCacheControl.h>".}
 
 const
   MAP_JIT* = 0x0800'i32
@@ -16,51 +18,73 @@ const
 
   # Compile-time exact byte offsets into DspState / Dsp56300State
   OFFSET_CORE* = offsetOf(DspState, core)
-  OFFSET_X0*   = OFFSET_CORE + offsetOf(Dsp56300State, x0)
-  OFFSET_X1*   = OFFSET_CORE + offsetOf(Dsp56300State, x1)
-  OFFSET_Y0*   = OFFSET_CORE + offsetOf(Dsp56300State, y0)
-  OFFSET_Y1*   = OFFSET_CORE + offsetOf(Dsp56300State, y1)
-  OFFSET_A2*   = OFFSET_CORE + offsetOf(Dsp56300State, a2)
-  OFFSET_A1*   = OFFSET_CORE + offsetOf(Dsp56300State, a1)
-  OFFSET_A0*   = OFFSET_CORE + offsetOf(Dsp56300State, a0)
-  OFFSET_B2*   = OFFSET_CORE + offsetOf(Dsp56300State, b2)
-  OFFSET_B1*   = OFFSET_CORE + offsetOf(Dsp56300State, b1)
-  OFFSET_B0*   = OFFSET_CORE + offsetOf(Dsp56300State, b0)
-  OFFSET_R*    = OFFSET_CORE + offsetOf(Dsp56300State, r)
-  OFFSET_N*    = OFFSET_CORE + offsetOf(Dsp56300State, n)
-  OFFSET_M*    = OFFSET_CORE + offsetOf(Dsp56300State, m)
-  OFFSET_PC*   = OFFSET_CORE + offsetOf(Dsp56300State, pc)
-  OFFSET_SR*   = OFFSET_CORE + offsetOf(Dsp56300State, sr)
+  OFFSET_X0* = OFFSET_CORE + offsetOf(Dsp56300State, x0)
+  OFFSET_X1* = OFFSET_CORE + offsetOf(Dsp56300State, x1)
+  OFFSET_Y0* = OFFSET_CORE + offsetOf(Dsp56300State, y0)
+  OFFSET_Y1* = OFFSET_CORE + offsetOf(Dsp56300State, y1)
+  OFFSET_A2* = OFFSET_CORE + offsetOf(Dsp56300State, a2)
+  OFFSET_A1* = OFFSET_CORE + offsetOf(Dsp56300State, a1)
+  OFFSET_A0* = OFFSET_CORE + offsetOf(Dsp56300State, a0)
+  OFFSET_B2* = OFFSET_CORE + offsetOf(Dsp56300State, b2)
+  OFFSET_B1* = OFFSET_CORE + offsetOf(Dsp56300State, b1)
+  OFFSET_B0* = OFFSET_CORE + offsetOf(Dsp56300State, b0)
+  OFFSET_R* = OFFSET_CORE + offsetOf(Dsp56300State, r)
+  OFFSET_N* = OFFSET_CORE + offsetOf(Dsp56300State, n)
+  OFFSET_M* = OFFSET_CORE + offsetOf(Dsp56300State, m)
+  OFFSET_PC* = OFFSET_CORE + offsetOf(Dsp56300State, pc)
+  OFFSET_SR* = OFFSET_CORE + offsetOf(Dsp56300State, sr)
 
 proc regOffset*(reg: RegId): int =
   case reg
-  of RegId.regX0: OFFSET_X0
-  of RegId.regX1: OFFSET_X1
-  of RegId.regY0: OFFSET_Y0
-  of RegId.regY1: OFFSET_Y1
-  of RegId.regA0: OFFSET_A0
-  of RegId.regA1: OFFSET_A1
-  of RegId.regA2: OFFSET_A2
-  of RegId.regB0: OFFSET_B0
-  of RegId.regB1: OFFSET_B1
-  of RegId.regB2: OFFSET_B2
-  of RegId.regA:  OFFSET_A1
-  of RegId.regB:  OFFSET_B1
-  of RegId.regR0..RegId.regR7: OFFSET_R + (int(reg) - int(RegId.regR0)) * 4
-  of RegId.regN0..RegId.regN7: OFFSET_N + (int(reg) - int(RegId.regN0)) * 4
-  of RegId.regM0..RegId.regM7: OFFSET_M + (int(reg) - int(RegId.regM0)) * 4
-  of RegId.regPC: OFFSET_PC
-  of RegId.regSR: OFFSET_SR
-  else: -1
+  of RegId.regX0:
+    OFFSET_X0
+  of RegId.regX1:
+    OFFSET_X1
+  of RegId.regY0:
+    OFFSET_Y0
+  of RegId.regY1:
+    OFFSET_Y1
+  of RegId.regA0:
+    OFFSET_A0
+  of RegId.regA1:
+    OFFSET_A1
+  of RegId.regA2:
+    OFFSET_A2
+  of RegId.regB0:
+    OFFSET_B0
+  of RegId.regB1:
+    OFFSET_B1
+  of RegId.regB2:
+    OFFSET_B2
+  of RegId.regA:
+    OFFSET_A1
+  of RegId.regB:
+    OFFSET_B1
+  of RegId.regR0 .. RegId.regR7:
+    OFFSET_R + (int(reg) - int(RegId.regR0)) * 4
+  of RegId.regN0 .. RegId.regN7:
+    OFFSET_N + (int(reg) - int(RegId.regN0)) * 4
+  of RegId.regM0 .. RegId.regM7:
+    OFFSET_M + (int(reg) - int(RegId.regM0)) * 4
+  of RegId.regPC:
+    OFFSET_PC
+  of RegId.regSR:
+    OFFSET_SR
+  else:
+    -1
 
 # Forward-facing C-compatible helpers called by JIT machine code when needed
-proc nativeMemRead*(statePtr: ptr DspState, space: cint, address: uint32): uint32 {.cdecl.} =
+proc nativeMemRead*(
+    statePtr: ptr DspState, space: cint, address: uint32
+): uint32 {.cdecl.} =
   if statePtr != nil:
     let sp = if space == 0: Dsp56300Space.SpaceX else: Dsp56300Space.SpaceY
     return statePtr[].mem.readMem(statePtr[].core, sp, address)
   return 0
 
-proc nativeMemWrite*(statePtr: ptr DspState, space: cint, address: uint32, val: uint32) {.cdecl.} =
+proc nativeMemWrite*(
+    statePtr: ptr DspState, space: cint, address: uint32, val: uint32
+) {.cdecl.} =
   if statePtr != nil:
     let sp = if space == 0: Dsp56300Space.SpaceX else: Dsp56300Space.SpaceY
     statePtr[].mem.writeMem(statePtr[].core, sp, address, val)
@@ -109,27 +133,27 @@ proc armLoadAcc(accReg: RegId): seq[uint32] =
   let offA2 = if accReg == RegId.regB: OFFSET_B2 else: OFFSET_A2
   let offA1 = if accReg == RegId.regB: OFFSET_B1 else: OFFSET_A1
   let offA0 = if accReg == RegId.regB: OFFSET_B0 else: OFFSET_A0
-  result.add(armLdrB(13, offA2))             # ldrb w13, [x19, #offA2]
-  result.add(armLdrW(14, offA1))             # ldr w14, [x19, #offA1]
-  result.add(armLdrW(15, offA0))             # ldr w15, [x19, #offA0]
-  result.add(0x53005DCE'u32)                 # ubfx w14, w14, #0, #24
-  result.add(0x53005DEF'u32)                 # ubfx w15, w15, #0, #24
-  result.add(0xAA0E61E9'u32)                 # orr x9, x15, x14, lsl #24
-  result.add(0xAA0DC129'u32)                 # orr x9, x9, x13, lsl #48
-  result.add(0x9340DD29'u32)                 # sbfx x9, x9, #0, #56
+  result.add(armLdrB(13, offA2)) # ldrb w13, [x19, #offA2]
+  result.add(armLdrW(14, offA1)) # ldr w14, [x19, #offA1]
+  result.add(armLdrW(15, offA0)) # ldr w15, [x19, #offA0]
+  result.add(0x53005DCE'u32) # ubfx w14, w14, #0, #24
+  result.add(0x53005DEF'u32) # ubfx w15, w15, #0, #24
+  result.add(0xAA0E61E9'u32) # orr x9, x15, x14, lsl #24
+  result.add(0xAA0DC129'u32) # orr x9, x9, x13, lsl #48
+  result.add(0x9340DD29'u32) # sbfx x9, x9, #0, #56
 
 proc armStoreAcc(accReg: RegId): seq[uint32] =
   # Stores signed 56-bit accumulator from x9 back to DspState
   let offA2 = if accReg == RegId.regB: OFFSET_B2 else: OFFSET_A2
   let offA1 = if accReg == RegId.regB: OFFSET_B1 else: OFFSET_A1
   let offA0 = if accReg == RegId.regB: OFFSET_B0 else: OFFSET_A0
-  result.add(0xD370FD2A'u32)                 # lsr x10, x9, #48
-  result.add(armStrB(10, offA2))             # strb w10, [x19, #offA2]
-  result.add(0xD358FD2B'u32)                 # lsr x11, x9, #24
-  result.add(0x53005D6B'u32)                 # ubfx w11, w11, #0, #24
-  result.add(armStrW(11, offA1))             # str w11, [x19, #offA1]
-  result.add(0x53005D2C'u32)                 # ubfx w12, w9, #0, #24
-  result.add(armStrW(12, offA0))             # str w12, [x19, #offA0]
+  result.add(0xD370FD2A'u32) # lsr x10, x9, #48
+  result.add(armStrB(10, offA2)) # strb w10, [x19, #offA2]
+  result.add(0xD358FD2B'u32) # lsr x11, x9, #24
+  result.add(0x53005D6B'u32) # ubfx w11, w11, #0, #24
+  result.add(armStrW(11, offA1)) # str w11, [x19, #offA1]
+  result.add(0x53005D2C'u32) # ubfx w12, w9, #0, #24
+  result.add(armStrW(12, offA0)) # str w12, [x19, #offA0]
 
 proc computeBlockCycles*(blk: IrBasicBlock): uint32 =
   var loopIterations = 1'u32
@@ -143,12 +167,23 @@ proc computeBlockCycles*(blk: IrBasicBlock): uint32 =
   var perIter = 0'u32
   for rawOp in blk.ops:
     let op = canonicalizeOp(rawOp)
-    if op.kind in {IrOpKind.irNop, IrOpKind.irAluOp, IrOpKind.irLoopEndDo, IrOpKind.irLoopRep, IrOpKind.irHalt}:
+    if op.kind in {
+      IrOpKind.irNop, IrOpKind.irAluOp, IrOpKind.irLoopEndDo, IrOpKind.irLoopRep,
+      IrOpKind.irHalt,
+    }:
       perIter += 1
-    elif op.kind in {IrOpKind.irBranch, IrOpKind.irBranchCond, IrOpKind.irCall, IrOpKind.irReturn, IrOpKind.irReturnInt, IrOpKind.irLoopDo, IrOpKind.irLoopDoForever, IrOpKind.irLoopBrkCc}:
+    elif op.kind in {
+      IrOpKind.irBranch, IrOpKind.irBranchCond, IrOpKind.irCall, IrOpKind.irReturn,
+      IrOpKind.irReturnInt, IrOpKind.irLoopDo, IrOpKind.irLoopDoForever,
+      IrOpKind.irLoopBrkCc,
+    }:
       perIter += 2
 
-  result = if perIter == 0: 1'u32 else: (perIter * loopIterations)
+  result =
+    if perIter == 0:
+      1'u32
+    else:
+      (perIter * loopIterations)
 
 proc assembleArm64*(blk: IrBasicBlock): seq[uint32] =
   ## Clean-room ARM64 machine-code emitter lowering all MicroOps in blk directly to A64 instructions.
@@ -188,32 +223,29 @@ proc assembleArm64*(blk: IrBasicBlock): seq[uint32] =
     case op.kind
     of IrOpKind.irNop, IrOpKind.irCheckGen:
       discard
-
     of IrOpKind.irLoadImm:
       let off = regOffset(op.dst)
       if off >= 0:
         result.add(armMovImm32(9, op.imm and 0x00FFFFFF'u32))
         result.add(armStrW(9, off))
-
     of IrOpKind.irLoadReg:
       let srcOff = regOffset(op.src1)
       let dstOff = regOffset(op.dst)
       if srcOff >= 0 and dstOff >= 0:
         result.add(armLdrW(9, srcOff))
         result.add(armStrW(9, dstOff))
-
     of IrOpKind.irStoreReg:
       let srcOff = regOffset(op.src1)
       let dstOff = regOffset(op.dst)
       if srcOff >= 0 and dstOff >= 0:
         result.add(armLdrW(9, srcOff))
         result.add(armStrW(9, dstOff))
-
     of IrOpKind.irLoadMem:
       let dstOff = regOffset(op.dst)
       if dstOff >= 0:
         result.add(0xAA1303E0'u32) # mov x0, x19
-        result.add(if op.space == MemSpace.memX: 0x52800001'u32 else: 0x52800021'u32) # mov w1, #0 / #1
+        result.add(if op.space == MemSpace.memX: 0x52800001'u32 else: 0x52800021'u32)
+          # mov w1, #0 / #1
         if op.addrMode == AddrMode.amAbsolute:
           result.add(armMovImm32(2, op.imm))
         else:
@@ -222,7 +254,6 @@ proc assembleArm64*(blk: IrBasicBlock): seq[uint32] =
         result.add(armMov64(16, cast[uint64](nativeMemRead)))
         result.add(0xD63F0200'u32) # blr x16
         result.add(armStrW(0, dstOff)) # str w0, [x19, #dstOff]
-
     of IrOpKind.irStoreMem:
       let srcOff = regOffset(op.src1)
       if srcOff >= 0:
@@ -236,7 +267,6 @@ proc assembleArm64*(blk: IrBasicBlock): seq[uint32] =
         result.add(armLdrW(3, srcOff))
         result.add(armMov64(16, cast[uint64](nativeMemWrite)))
         result.add(0xD63F0200'u32) # blr x16
-
     of IrOpKind.irAguUpdate:
       let rOff = OFFSET_R + int(op.rNum) * 4
       result.add(armLdrW(9, rOff))
@@ -253,10 +283,10 @@ proc assembleArm64*(blk: IrBasicBlock): seq[uint32] =
         let nOff = OFFSET_N + int(op.rNum) * 4
         result.add(armLdrW(10, nOff))
         result.add(0x4B0A0129'u32) # sub w9, w9, w10
-      else: discard
+      else:
+        discard
       result.add(0x53005D29'u32) # ubfx w9, w9, #0, #24
       result.add(armStrW(9, rOff))
-
     of IrOpKind.irAluOp:
       # Load operands into w10 (src1) and w12 (src2)
       let src1Off = regOffset(op.src1)
@@ -277,64 +307,53 @@ proc assembleArm64*(blk: IrBasicBlock): seq[uint32] =
         result.add(0xAA0B03E9'u32) # mov x9, x11
         result.add(0x9340DD29'u32) # sbfx x9, x9, #0, #56
         result.add(armStoreAcc(op.dst))
-
       of AluOp.opMac, AluOp.opMacr:
         result.add(armLoadAcc(op.dst)) # loads accumulator to x9
-        result.add(0x9B2C7D4B'u32)     # smull x11, w10, w12
-        result.add(0xD37FF96B'u32)     # lsl x11, x11, #1
+        result.add(0x9B2C7D4B'u32) # smull x11, w10, w12
+        result.add(0xD37FF96B'u32) # lsl x11, x11, #1
         if op.isNeg:
-          result.add(0xCB0B03EB'u32)   # neg x11, x11
-        result.add(0x8B0B0129'u32)     # add x9, x9, x11
-        result.add(0x9340DD29'u32)     # sbfx x9, x9, #0, #56
+          result.add(0xCB0B03EB'u32) # neg x11, x11
+        result.add(0x8B0B0129'u32) # add x9, x9, x11
+        result.add(0x9340DD29'u32) # sbfx x9, x9, #0, #56
         result.add(armStoreAcc(op.dst))
-
       of AluOp.opAdd:
         result.add(armLoadAcc(op.dst))
-        result.add(0x93407D4A'u32)     # sxtw x10, w10
-        result.add(0xD3689D4A'u32)     # lsl x10, x10, #24
-        result.add(0x8B0A0129'u32)     # add x9, x9, x10
-        result.add(0x9340DD29'u32)     # sbfx x9, x9, #0, #56
+        result.add(0x93407D4A'u32) # sxtw x10, w10
+        result.add(0xD3689D4A'u32) # lsl x10, x10, #24
+        result.add(0x8B0A0129'u32) # add x9, x9, x10
+        result.add(0x9340DD29'u32) # sbfx x9, x9, #0, #56
         result.add(armStoreAcc(op.dst))
-
       of AluOp.opSub:
         result.add(armLoadAcc(op.dst))
-        result.add(0x93407D4A'u32)     # sxtw x10, w10
-        result.add(0xD3689D4A'u32)     # lsl x10, x10, #24
-        result.add(0xCB0A0129'u32)     # sub x9, x9, x10
-        result.add(0x9340DD29'u32)     # sbfx x9, x9, #0, #56
+        result.add(0x93407D4A'u32) # sxtw x10, w10
+        result.add(0xD3689D4A'u32) # lsl x10, x10, #24
+        result.add(0xCB0A0129'u32) # sub x9, x9, x10
+        result.add(0x9340DD29'u32) # sbfx x9, x9, #0, #56
         result.add(armStoreAcc(op.dst))
-
       of AluOp.opClr:
-        result.add(0xAA1F03E9'u32)     # mov x9, xzr (0)
+        result.add(0xAA1F03E9'u32) # mov x9, xzr (0)
         result.add(armStoreAcc(op.dst))
-
       of AluOp.opNeg:
         result.add(armLoadAcc(op.dst))
-        result.add(0xCB0903E9'u32)     # neg x9, x9
-        result.add(0x9340DD29'u32)     # sbfx x9, x9, #0, #56
+        result.add(0xCB0903E9'u32) # neg x9, x9
+        result.add(0x9340DD29'u32) # sbfx x9, x9, #0, #56
         result.add(armStoreAcc(op.dst))
-
       of AluOp.opAsl:
         result.add(armLoadAcc(op.dst))
-        result.add(0xD37FF929'u32)     # lsl x9, x9, #1
-        result.add(0x9340DD29'u32)     # sbfx x9, x9, #0, #56
+        result.add(0xD37FF929'u32) # lsl x9, x9, #1
+        result.add(0x9340DD29'u32) # sbfx x9, x9, #0, #56
         result.add(armStoreAcc(op.dst))
-
       of AluOp.opAsr:
         result.add(armLoadAcc(op.dst))
-        result.add(0x9341FD29'u32)     # asr x9, x9, #1
+        result.add(0x9341FD29'u32) # asr x9, x9, #1
         result.add(armStoreAcc(op.dst))
-
       else:
         discard
-
     of IrOpKind.irBranch:
       result.add(armMovImm32(9, op.imm))
       result.add(armStrW(9, OFFSET_PC))
-
     of IrOpKind.irLoopDo:
       discard # Handled by loop wrapper
-
     else:
       discard
 
@@ -345,7 +364,11 @@ proc assembleArm64*(blk: IrBasicBlock): seq[uint32] =
     result.add(0x54000000'u32 or (imm19 shl 5) or 1'u32) # b.ne loopStart
 
   # Update PC if no branch
-  let finalPc = if isLoopBlock: (loopEndPc + 1) else: blk.endPc
+  let finalPc =
+    if isLoopBlock:
+      (loopEndPc + 1)
+    else:
+      blk.endPc
   result.add(armMovImm32(9, finalPc))
   result.add(armStrW(9, OFFSET_PC))
   if isLoopBlock:
@@ -370,7 +393,7 @@ proc x86EmitU32(buf: var seq[byte], val: uint32) =
   buf.add(byte((val shr 24) and 0xFF'u32))
 
 proc x86EmitU64(buf: var seq[byte], val: uint64) =
-  for i in 0..<8:
+  for i in 0 ..< 8:
     buf.add(byte((val shr (i * 8)) and 0xFF'u64))
 
 proc x86LoadAcc(buf: var seq[byte], accReg: RegId) =
@@ -379,11 +402,13 @@ proc x86LoadAcc(buf: var seq[byte], accReg: RegId) =
   let offA1 = uint32(if accReg == RegId.regB: OFFSET_B1 else: OFFSET_A1)
   let offA0 = uint32(if accReg == RegId.regB: OFFSET_B0 else: OFFSET_A0)
   # movzx eax, byte ptr [rbx + offA2]
-  buf.add([0x0F'u8, 0xB6, 0x83]); x86EmitU32(buf, offA2)
+  buf.add([0x0F'u8, 0xB6, 0x83])
+  x86EmitU32(buf, offA2)
   # shl rax, 24
   buf.add([0x48'u8, 0xC1, 0xE0, 0x18])
   # mov r8d, [rbx + offA1]
-  buf.add([0x44'u8, 0x8B, 0x83]); x86EmitU32(buf, offA1)
+  buf.add([0x44'u8, 0x8B, 0x83])
+  x86EmitU32(buf, offA1)
   # and r8d, 0x00FFFFFF
   buf.add([0x41'u8, 0x81, 0xE0, 0xFF, 0xFF, 0xFF, 0x00])
   # or rax, r8
@@ -391,7 +416,8 @@ proc x86LoadAcc(buf: var seq[byte], accReg: RegId) =
   # shl rax, 24
   buf.add([0x48'u8, 0xC1, 0xE0, 0x18])
   # mov r8d, [rbx + offA0]
-  buf.add([0x44'u8, 0x8B, 0x83]); x86EmitU32(buf, offA0)
+  buf.add([0x44'u8, 0x8B, 0x83])
+  x86EmitU32(buf, offA0)
   # and r8d, 0x00FFFFFF
   buf.add([0x41'u8, 0x81, 0xE0, 0xFF, 0xFF, 0xFF, 0x00])
   # or rax, r8
@@ -410,17 +436,20 @@ proc x86StoreAcc(buf: var seq[byte], accReg: RegId) =
   # and edx, 0x00FFFFFF
   buf.add([0x81'u8, 0xE2, 0xFF, 0xFF, 0xFF, 0x00])
   # mov [rbx + offA0], edx
-  buf.add([0x89'u8, 0x93]); x86EmitU32(buf, offA0)
+  buf.add([0x89'u8, 0x93])
+  x86EmitU32(buf, offA0)
   # mov rdx, rax; shr rdx, 24
   buf.add([0x48'u8, 0x89, 0xC2, 0x48, 0xC1, 0xEA, 0x18])
   # and edx, 0x00FFFFFF
   buf.add([0x81'u8, 0xE2, 0xFF, 0xFF, 0xFF, 0x00])
   # mov [rbx + offA1], edx
-  buf.add([0x89'u8, 0x93]); x86EmitU32(buf, offA1)
+  buf.add([0x89'u8, 0x93])
+  x86EmitU32(buf, offA1)
   # mov rdx, rax; shr rdx, 48
   buf.add([0x48'u8, 0x89, 0xC2, 0x48, 0xC1, 0xEA, 0x30])
   # mov [rbx + offA2], dl
-  buf.add([0x88'u8, 0x93]); x86EmitU32(buf, offA2)
+  buf.add([0x88'u8, 0x93])
+  x86EmitU32(buf, offA2)
 
 proc assembleX86_64*(blk: IrBasicBlock): seq[byte] =
   ## Clean-room x86_64 machine-code emitter lowering all MicroOps in blk directly to AMD64 instructions.
@@ -428,15 +457,15 @@ proc assembleX86_64*(blk: IrBasicBlock): seq[byte] =
   result = @[]
 
   # Prologue
-  result.add(0x55'u8)                               # push rbp
-  result.add([0x48'u8, 0x89, 0xE5])                 # mov rbp, rsp
-  result.add(0x53'u8)                               # push rbx
-  result.add([0x41'u8, 0x54])                       # push r12
-  result.add([0x41'u8, 0x55])                       # push r13
-  result.add([0x41'u8, 0x56])                       # push r14
-  result.add([0x41'u8, 0x57])                       # push r15
-  result.add([0x48'u8, 0x83, 0xEC, 0x08])           # sub rsp, 8 (align 16)
-  result.add([0x48'u8, 0x89, 0xFB])                 # mov rbx, rdi (save statePtr)
+  result.add(0x55'u8) # push rbp
+  result.add([0x48'u8, 0x89, 0xE5]) # mov rbp, rsp
+  result.add(0x53'u8) # push rbx
+  result.add([0x41'u8, 0x54]) # push r12
+  result.add([0x41'u8, 0x55]) # push r13
+  result.add([0x41'u8, 0x56]) # push r14
+  result.add([0x41'u8, 0x57]) # push r15
+  result.add([0x48'u8, 0x83, 0xEC, 0x08]) # sub rsp, 8 (align 16)
+  result.add([0x48'u8, 0x89, 0xFB]) # mov rbx, rdi (save statePtr)
 
   # Compute cycles
   let cycles = computeBlockCycles(blk)
@@ -465,61 +494,68 @@ proc assembleX86_64*(blk: IrBasicBlock): seq[byte] =
     case op.kind
     of IrOpKind.irNop, IrOpKind.irCheckGen:
       discard
-
     of IrOpKind.irLoadImm:
       let off = regOffset(op.dst)
       if off >= 0:
         result.add([0xC7'u8, 0x83]) # mov dword ptr [rbx + off], imm32
         x86EmitU32(result, uint32(off))
         x86EmitU32(result, op.imm and 0x00FFFFFF'u32)
-
     of IrOpKind.irLoadReg:
       let srcOff = regOffset(op.src1)
       let dstOff = regOffset(op.dst)
       if srcOff >= 0 and dstOff >= 0:
-        result.add([0x8B'u8, 0x83]); x86EmitU32(result, uint32(srcOff)) # mov eax, [rbx + srcOff]
-        result.add([0x89'u8, 0x83]); x86EmitU32(result, uint32(dstOff)) # mov [rbx + dstOff], eax
-
+        result.add([0x8B'u8, 0x83])
+        x86EmitU32(result, uint32(srcOff)) # mov eax, [rbx + srcOff]
+        result.add([0x89'u8, 0x83])
+        x86EmitU32(result, uint32(dstOff)) # mov [rbx + dstOff], eax
     of IrOpKind.irStoreReg:
       let srcOff = regOffset(op.src1)
       let dstOff = regOffset(op.dst)
       if srcOff >= 0 and dstOff >= 0:
-        result.add([0x8B'u8, 0x83]); x86EmitU32(result, uint32(srcOff))
-        result.add([0x89'u8, 0x83]); x86EmitU32(result, uint32(dstOff))
-
+        result.add([0x8B'u8, 0x83])
+        x86EmitU32(result, uint32(srcOff))
+        result.add([0x89'u8, 0x83])
+        x86EmitU32(result, uint32(dstOff))
     of IrOpKind.irLoadMem:
       let dstOff = regOffset(op.dst)
       if dstOff >= 0:
         result.add([0x48'u8, 0x89, 0xDF]) # mov rdi, rbx (statePtr)
-        result.add([0xBE'u8])             # mov esi, space
+        result.add([0xBE'u8]) # mov esi, space
         x86EmitU32(result, if op.space == MemSpace.memX: 0'u32 else: 1'u32)
         if op.addrMode == AddrMode.amAbsolute:
-          result.add([0xBA'u8]); x86EmitU32(result, op.imm) # mov edx, imm
+          result.add([0xBA'u8])
+          x86EmitU32(result, op.imm) # mov edx, imm
         else:
           let rOff = OFFSET_R + int(op.rNum) * 4
-          result.add([0x8B'u8, 0x93]); x86EmitU32(result, uint32(rOff)) # mov edx, [rbx + rOff]
-        result.add([0x48'u8, 0xB8]); x86EmitU64(result, cast[uint64](nativeMemRead)) # movabs rax, helper
-        result.add([0xFF'u8, 0xD0])       # call rax
-        result.add([0x89'u8, 0x83]); x86EmitU32(result, uint32(dstOff)) # mov [rbx + dstOff], eax
-
+          result.add([0x8B'u8, 0x93])
+          x86EmitU32(result, uint32(rOff)) # mov edx, [rbx + rOff]
+        result.add([0x48'u8, 0xB8])
+        x86EmitU64(result, cast[uint64](nativeMemRead)) # movabs rax, helper
+        result.add([0xFF'u8, 0xD0]) # call rax
+        result.add([0x89'u8, 0x83])
+        x86EmitU32(result, uint32(dstOff)) # mov [rbx + dstOff], eax
     of IrOpKind.irStoreMem:
       let srcOff = regOffset(op.src1)
       if srcOff >= 0:
         result.add([0x48'u8, 0x89, 0xDF]) # mov rdi, rbx
-        result.add([0xBE'u8])             # mov esi, space
+        result.add([0xBE'u8]) # mov esi, space
         x86EmitU32(result, if op.space == MemSpace.memX: 0'u32 else: 1'u32)
         if op.addrMode == AddrMode.amAbsolute:
-          result.add([0xBA'u8]); x86EmitU32(result, op.imm)
+          result.add([0xBA'u8])
+          x86EmitU32(result, op.imm)
         else:
           let rOff = OFFSET_R + int(op.rNum) * 4
-          result.add([0x8B'u8, 0x93]); x86EmitU32(result, uint32(rOff))
-        result.add([0x8B'u8, 0x8B]); x86EmitU32(result, uint32(srcOff)) # mov ecx, [rbx + srcOff]
-        result.add([0x48'u8, 0xB8]); x86EmitU64(result, cast[uint64](nativeMemWrite))
+          result.add([0x8B'u8, 0x93])
+          x86EmitU32(result, uint32(rOff))
+        result.add([0x8B'u8, 0x8B])
+        x86EmitU32(result, uint32(srcOff)) # mov ecx, [rbx + srcOff]
+        result.add([0x48'u8, 0xB8])
+        x86EmitU64(result, cast[uint64](nativeMemWrite))
         result.add([0xFF'u8, 0xD0])
-
     of IrOpKind.irAguUpdate:
       let rOff = uint32(OFFSET_R + int(op.rNum) * 4)
-      result.add([0x8B'u8, 0x83]); x86EmitU32(result, rOff) # mov eax, [rbx + rOff]
+      result.add([0x8B'u8, 0x83])
+      x86EmitU32(result, rOff) # mov eax, [rbx + rOff]
       case op.addrMode
       of AddrMode.amPostInc:
         result.add([0xFF'u8, 0xC0]) # inc eax
@@ -527,92 +563,88 @@ proc assembleX86_64*(blk: IrBasicBlock): seq[byte] =
         result.add([0xFF'u8, 0xC8]) # dec eax
       of AddrMode.amPostIncN:
         let nOff = uint32(OFFSET_N + int(op.rNum) * 4)
-        result.add([0x03'u8, 0x83]); x86EmitU32(result, nOff) # add eax, [rbx + nOff]
+        result.add([0x03'u8, 0x83])
+        x86EmitU32(result, nOff) # add eax, [rbx + nOff]
       of AddrMode.amPostDecN:
         let nOff = uint32(OFFSET_N + int(op.rNum) * 4)
-        result.add([0x2B'u8, 0x83]); x86EmitU32(result, nOff) # sub eax, [rbx + nOff]
-      else: discard
+        result.add([0x2B'u8, 0x83])
+        x86EmitU32(result, nOff) # sub eax, [rbx + nOff]
+      else:
+        discard
       result.add([0x25'u8, 0xFF, 0xFF, 0xFF, 0x00]) # and eax, 0x00FFFFFF
-      result.add([0x89'u8, 0x83]); x86EmitU32(result, rOff) # mov [rbx + rOff], eax
-
+      result.add([0x89'u8, 0x83])
+      x86EmitU32(result, rOff) # mov [rbx + rOff], eax
     of IrOpKind.irAluOp:
       let src1Off = regOffset(op.src1)
       let src2Off = regOffset(op.src2)
       if src1Off >= 0:
-        result.add([0x8B'u8, 0x83]); x86EmitU32(result, uint32(src1Off)) # mov eax, [rbx + src1Off]
-        result.add([0xC1'u8, 0xE0, 0x08, 0xC1, 0xF8, 0x08])             # shl eax, 8; sar eax, 8
-        result.add([0x48'u8, 0x63, 0xC0])                                 # movsxd rax, eax
+        result.add([0x8B'u8, 0x83])
+        x86EmitU32(result, uint32(src1Off)) # mov eax, [rbx + src1Off]
+        result.add([0xC1'u8, 0xE0, 0x08, 0xC1, 0xF8, 0x08]) # shl eax, 8; sar eax, 8
+        result.add([0x48'u8, 0x63, 0xC0]) # movsxd rax, eax
       if src2Off >= 0:
-        result.add([0x8B'u8, 0x93]); x86EmitU32(result, uint32(src2Off)) # mov edx, [rbx + src2Off]
-        result.add([0xC1'u8, 0xE2, 0x08, 0xC1, 0xFA, 0x08])             # shl edx, 8; sar edx, 8
-        result.add([0x48'u8, 0x63, 0xD2])                                 # movsxd rdx, edx
+        result.add([0x8B'u8, 0x93])
+        x86EmitU32(result, uint32(src2Off)) # mov edx, [rbx + src2Off]
+        result.add([0xC1'u8, 0xE2, 0x08, 0xC1, 0xFA, 0x08]) # shl edx, 8; sar edx, 8
+        result.add([0x48'u8, 0x63, 0xD2]) # movsxd rdx, edx
 
       case op.aluOp
       of AluOp.opMpy, AluOp.opMpyr:
         result.add([0x48'u8, 0x0F, 0xAF, 0xC2]) # imul rax, rdx
-        result.add([0x48'u8, 0xD1, 0xE0])       # shl rax, 1
+        result.add([0x48'u8, 0xD1, 0xE0]) # shl rax, 1
         if op.isNeg:
-          result.add([0x48'u8, 0xF7, 0xD8])     # neg rax
+          result.add([0x48'u8, 0xF7, 0xD8]) # neg rax
         result.add([0x48'u8, 0xC1, 0xE0, 0x08, 0x48, 0xC1, 0xF8, 0x08]) # sign-extend 56
         x86StoreAcc(result, op.dst)
-
       of AluOp.opMac, AluOp.opMacr:
         result.add([0x48'u8, 0x0F, 0xAF, 0xC2]) # imul rax, rdx
-        result.add([0x48'u8, 0xD1, 0xE0])       # shl rax, 1
+        result.add([0x48'u8, 0xD1, 0xE0]) # shl rax, 1
         if op.isNeg:
           result.add([0x48'u8, 0xF7, 0xD8])
-        result.add([0x48'u8, 0x89, 0xC1])       # mov rcx, rax (save prod)
-        x86LoadAcc(result, op.dst)               # loads acc into rax
-        result.add([0x48'u8, 0x01, 0xC8])       # add rax, rcx
+        result.add([0x48'u8, 0x89, 0xC1]) # mov rcx, rax (save prod)
+        x86LoadAcc(result, op.dst) # loads acc into rax
+        result.add([0x48'u8, 0x01, 0xC8]) # add rax, rcx
         result.add([0x48'u8, 0xC1, 0xE0, 0x08, 0x48, 0xC1, 0xF8, 0x08])
         x86StoreAcc(result, op.dst)
-
       of AluOp.opAdd:
         result.add([0x48'u8, 0xC1, 0xE0, 0x18]) # shl rax, 24 (MSP align)
-        result.add([0x48'u8, 0x89, 0xC2])       # mov rdx, rax
-        x86LoadAcc(result, op.dst)               # loads acc into rax
-        result.add([0x48'u8, 0x01, 0xD0])       # add rax, rdx
+        result.add([0x48'u8, 0x89, 0xC2]) # mov rdx, rax
+        x86LoadAcc(result, op.dst) # loads acc into rax
+        result.add([0x48'u8, 0x01, 0xD0]) # add rax, rdx
         result.add([0x48'u8, 0xC1, 0xE0, 0x08, 0x48, 0xC1, 0xF8, 0x08])
         x86StoreAcc(result, op.dst)
-
       of AluOp.opSub:
         result.add([0x48'u8, 0xC1, 0xE0, 0x18])
         result.add([0x48'u8, 0x89, 0xC2])
         x86LoadAcc(result, op.dst)
-        result.add([0x48'u8, 0x29, 0xD0])       # sub rax, rdx
+        result.add([0x48'u8, 0x29, 0xD0]) # sub rax, rdx
         result.add([0x48'u8, 0xC1, 0xE0, 0x08, 0x48, 0xC1, 0xF8, 0x08])
         x86StoreAcc(result, op.dst)
-
       of AluOp.opClr:
-        result.add([0x48'u8, 0x31, 0xC0])       # xor rax, rax
+        result.add([0x48'u8, 0x31, 0xC0]) # xor rax, rax
         x86StoreAcc(result, op.dst)
-
       of AluOp.opNeg:
         x86LoadAcc(result, op.dst)
-        result.add([0x48'u8, 0xF7, 0xD8])       # neg rax
+        result.add([0x48'u8, 0xF7, 0xD8]) # neg rax
         result.add([0x48'u8, 0xC1, 0xE0, 0x08, 0x48, 0xC1, 0xF8, 0x08])
         x86StoreAcc(result, op.dst)
-
       of AluOp.opAsl:
         x86LoadAcc(result, op.dst)
-        result.add([0x48'u8, 0xD1, 0xE0])       # shl rax, 1
+        result.add([0x48'u8, 0xD1, 0xE0]) # shl rax, 1
         result.add([0x48'u8, 0xC1, 0xE0, 0x08, 0x48, 0xC1, 0xF8, 0x08])
         x86StoreAcc(result, op.dst)
-
       of AluOp.opAsr:
         x86LoadAcc(result, op.dst)
-        result.add([0x48'u8, 0xD1, 0xF8])       # sar rax, 1
+        result.add([0x48'u8, 0xD1, 0xF8]) # sar rax, 1
         x86StoreAcc(result, op.dst)
-
       else:
         discard
-
     of IrOpKind.irBranch:
-      result.add([0xC7'u8, 0x83]); x86EmitU32(result, uint32(OFFSET_PC)); x86EmitU32(result, op.imm)
-
+      result.add([0xC7'u8, 0x83])
+      x86EmitU32(result, uint32(OFFSET_PC))
+      x86EmitU32(result, op.imm)
     of IrOpKind.irLoopDo:
       discard
-
     else:
       discard
 
@@ -627,21 +659,30 @@ proc assembleX86_64*(blk: IrBasicBlock): seq[byte] =
       x86EmitU32(result, uint32(diff32))
 
   # Update PC if no branch
-  let finalPc = if isLoopBlock: (loopEndPc + 1) else: blk.endPc
-  result.add([0xC7'u8, 0x83]); x86EmitU32(result, uint32(OFFSET_PC)); x86EmitU32(result, finalPc)
+  let finalPc =
+    if isLoopBlock:
+      (loopEndPc + 1)
+    else:
+      blk.endPc
+  result.add([0xC7'u8, 0x83])
+  x86EmitU32(result, uint32(OFFSET_PC))
+  x86EmitU32(result, finalPc)
   if isLoopBlock:
-    result.add([0xC7'u8, 0x83]); x86EmitU32(result, uint32(OFFSET_CORE + offsetOf(Dsp56300State, lc))); x86EmitU32(result, 0)
+    result.add([0xC7'u8, 0x83])
+    x86EmitU32(result, uint32(OFFSET_CORE + offsetOf(Dsp56300State, lc)))
+    x86EmitU32(result, 0)
 
   # Epilogue
-  result.add([0xB8'u8]); x86EmitU32(result, cycles) # mov eax, cycles
-  result.add([0x48'u8, 0x83, 0xC4, 0x08])           # add rsp, 8
-  result.add([0x41'u8, 0x5F])                       # pop r15
-  result.add([0x41'u8, 0x5E])                       # pop r14
-  result.add([0x41'u8, 0x5D])                       # pop r13
-  result.add([0x41'u8, 0x5C])                       # pop r12
-  result.add(0x5B'u8)                               # pop rbx
-  result.add(0x5D'u8)                               # pop rbp
-  result.add(0xC3'u8)                               # retq
+  result.add([0xB8'u8])
+  x86EmitU32(result, cycles) # mov eax, cycles
+  result.add([0x48'u8, 0x83, 0xC4, 0x08]) # add rsp, 8
+  result.add([0x41'u8, 0x5F]) # pop r15
+  result.add([0x41'u8, 0x5E]) # pop r14
+  result.add([0x41'u8, 0x5D]) # pop r13
+  result.add([0x41'u8, 0x5C]) # pop r12
+  result.add(0x5B'u8) # pop rbx
+  result.add(0x5D'u8) # pop rbp
+  result.add(0xC3'u8) # retq
 
 # ---------------------------------------------------------------------------
 # Native JIT Context & Compiler Entrypoint
@@ -667,11 +708,23 @@ proc newNativeJit*(capacity: int = 65536): NativeJitContext =
   result.blocks = @[]
 
   when defined(macosx) and defined(arm64):
-    result.buffer = mmap(nil, capacity, PROT_READ or PROT_WRITE or PROT_EXEC,
-                         MAP_PRIVATE or MAP_ANON or MAP_JIT, -1, 0)
+    result.buffer = mmap(
+      nil,
+      capacity,
+      PROT_READ or PROT_WRITE or PROT_EXEC,
+      MAP_PRIVATE or MAP_ANON or MAP_JIT,
+      -1,
+      0,
+    )
   else:
-    result.buffer = mmap(nil, capacity, PROT_READ or PROT_WRITE or PROT_EXEC,
-                         MAP_PRIVATE or MAP_ANON, -1, 0)
+    result.buffer = mmap(
+      nil,
+      capacity,
+      PROT_READ or PROT_WRITE or PROT_EXEC,
+      MAP_PRIVATE or MAP_ANON,
+      -1,
+      0,
+    )
 
   if result.buffer == MAP_FAILED:
     result.buffer = nil
@@ -698,7 +751,7 @@ proc compileBlock*(ctx: NativeJitContext, blk: IrBasicBlock): NativeBlockFn =
 
     pthread_jit_write_protect_np(0)
     let code32 = cast[ptr UncheckedArray[uint32]](entryPtr)
-    for i in 0..<insns.len:
+    for i in 0 ..< insns.len:
       code32[i] = insns[i]
 
     sys_icache_invalidate(entryPtr, csize_t(byteLen))
@@ -708,7 +761,6 @@ proc compileBlock*(ctx: NativeJitContext, blk: IrBasicBlock): NativeBlockFn =
     let fn = cast[NativeBlockFn](entryPtr)
     ctx.blocks.add(CompiledBlock(blk: blk, fn: fn))
     return fn
-
   elif defined(amd64):
     let bytes = assembleX86_64(blk)
     let byteLen = bytes.len
@@ -720,14 +772,13 @@ proc compileBlock*(ctx: NativeJitContext, blk: IrBasicBlock): NativeBlockFn =
     let entryPtr = cast[pointer](cast[uint](ctx.buffer) + uint(entryOffset))
 
     let codeBytes = cast[ptr UncheckedArray[byte]](entryPtr)
-    for i in 0..<bytes.len:
+    for i in 0 ..< bytes.len:
       codeBytes[i] = bytes[i]
 
     ctx.offset += ((byteLen + 15) div 16) * 16
     let fn = cast[NativeBlockFn](entryPtr)
     ctx.blocks.add(CompiledBlock(blk: blk, fn: fn))
     return fn
-
   else:
     gFallbackBlocks.add(blk)
     return fallbackCdeclDispatcher

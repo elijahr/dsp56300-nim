@@ -81,7 +81,9 @@ proc updateScalingFlag*(s: var Dsp56300State, val: int64) =
     s.sr = s.sr or SR_S
 
 # Arithmetic Saturation Mode (SM = 1) application
-proc applyArithmeticSaturation*(val: int64, sr: var uint32, saturated: var bool): int64 =
+proc applyArithmeticSaturation*(
+    val: int64, sr: var uint32, saturated: var bool
+): int64 =
   if (sr and SR_SM) == 0:
     saturated = false
     return val
@@ -109,10 +111,11 @@ proc applyArithmeticSaturation*(val: int64, sr: var uint32, saturated: var bool)
 # Common CCR Update for Arithmetic operations
 proc updateArithmeticCcr*(s: var Dsp56300State, res: int64, c: bool, v: bool) =
   var ccr = s.sr and not (SR_C or SR_V or SR_Z or SR_N or SR_U or SR_E)
-  if c: ccr = ccr or SR_C
+  if c:
+    ccr = ccr or SR_C
 
-
-  if v: ccr = ccr or SR_V or SR_L # Overflow sets sticky L bit
+  if v:
+    ccr = ccr or SR_V or SR_L # Overflow sets sticky L bit
 
   # Zero check (all 56 bits 0)
   if (cast[uint64](res) and 0x00FFFFFFFFFFFFFF'u64) == 0:
@@ -177,11 +180,19 @@ proc limitAccumulator24*(val: int64, sr: var uint32): uint32 {.inline.} =
     return uint32((u shr 24) and 0x00FFFFFF'u64)
 
 proc readAccumulator24*(s: var Dsp56300State, isB: bool): uint32 =
-  let val = if isB: s.getB() else: s.getA()
+  let val =
+    if isB:
+      s.getB()
+    else:
+      s.getA()
   limitAccumulator24(val, s.sr)
 
 proc readAccumulator48*(s: var Dsp56300State, isB: bool): uint64 =
-  let val = if isB: s.getB() else: s.getA()
+  let val =
+    if isB:
+      s.getB()
+    else:
+      s.getA()
   s.updateScalingFlag(val)
 
   if calcExtensionFlag(val, s.sr):
@@ -207,7 +218,8 @@ proc readAccumulator48*(s: var Dsp56300State, isB: bool): uint64 =
 proc roundAccumulator*(val: int64, sr: uint32): int64 =
   let sMode = (sr shr 10) and 0x03'u32
   let rm = (sr and SR_RM) != 0 # false: convergent, true: two's-complement
-  let roundBitPos = case sMode
+  let roundBitPos =
+    case sMode
     of 0: 23
     of 1: 24
     of 2: 22
@@ -231,7 +243,11 @@ proc roundAccumulator*(val: int64, sr: uint32): int64 =
     if lowerBits >= halfVal:
       roundUp = true
 
-  var res = if roundUp: u + (1'u64 shl (roundBitPos + 1)) else: u
+  var res =
+    if roundUp:
+      u + (1'u64 shl (roundBitPos + 1))
+    else:
+      u
   # Clear lower bits
   res = res and not maskLower
   return signExtend56(res)
@@ -241,7 +257,11 @@ proc roundAccumulator*(val: int64, sr: uint32): int64 =
 # ---------------------------------------------------------------------------
 
 proc aluAdd*(s: var Dsp56300State, src: int64, isDstB: bool, withCarry: bool = false) =
-  let dst = if isDstB: s.getB() else: s.getA()
+  let dst =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
   let cIn = if withCarry and ((s.sr and SR_C) != 0): 1'i64 else: 0'i64
 
   let rawDst = cast[uint64](dst) and 0x00FFFFFFFFFFFFFF'u64
@@ -260,11 +280,18 @@ proc aluAdd*(s: var Dsp56300State, src: int64, isDstB: bool, withCarry: bool = f
   var sat = false
   res = applyArithmeticSaturation(res, s.sr, sat)
 
-  if isDstB: s.setB(res) else: s.setA(res)
+  if isDstB:
+    s.setB(res)
+  else:
+    s.setA(res)
   s.updateArithmeticCcr(res, cOut, v or sat)
 
 proc aluSub*(s: var Dsp56300State, src: int64, isDstB: bool, withBorrow: bool = false) =
-  let dst = if isDstB: s.getB() else: s.getA()
+  let dst =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
   let bIn = if withBorrow and ((s.sr and SR_C) != 0): 1'i64 else: 0'i64
 
   let rawDst = cast[uint64](dst) and 0x00FFFFFFFFFFFFFF'u64
@@ -282,12 +309,19 @@ proc aluSub*(s: var Dsp56300State, src: int64, isDstB: bool, withBorrow: bool = 
   var sat = false
   res = applyArithmeticSaturation(res, s.sr, sat)
 
-  if isDstB: s.setB(res) else: s.setA(res)
+  if isDstB:
+    s.setB(res)
+  else:
+    s.setA(res)
   s.updateArithmeticCcr(res, cOut, v or sat)
 
 proc aluCmp*(s: var Dsp56300State, s1: int64, isDstB: bool) =
   # S2 - S1 (destination accumulator unchanged)
-  let s2 = if isDstB: s.getB() else: s.getA()
+  let s2 =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
   let rawS2 = cast[uint64](s2) and 0x00FFFFFFFFFFFFFF'u64
   let rawS1 = cast[uint64](s1) and 0x00FFFFFFFFFFFFFF'u64
   let rawDiff = (rawS2 - rawS1) and 0x00FFFFFFFFFFFFFF'u64
@@ -304,9 +338,21 @@ proc aluCmp*(s: var Dsp56300State, s1: int64, isDstB: bool) =
 
 proc aluCmpm*(s: var Dsp56300State, s1: int64, isDstB: bool) =
   # |S2| - |S1|
-  let s2 = if isDstB: s.getB() else: s.getA()
-  let absS2 = if s2 < 0: -s2 else: s2
-  let absS1 = if s1 < 0: -s1 else: s1
+  let s2 =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
+  let absS2 =
+    if s2 < 0:
+      -s2
+    else:
+      s2
+  let absS1 =
+    if s1 < 0:
+      -s1
+    else:
+      s1
 
   let rawS2 = cast[uint64](absS2) and 0x00FFFFFFFFFFFFFF'u64
   let rawS1 = cast[uint64](absS1) and 0x00FFFFFFFFFFFFFF'u64
@@ -326,7 +372,14 @@ proc multFractional24*(s1: int32, s2: int32): int64 =
   let pFrac = p shl 1
   return signExtend56(cast[uint64](pFrac))
 
-proc aluMpy*(s: var Dsp56300State, s1: int32, s2: int32, isDstB: bool, negate: bool = false, round: bool = false) =
+proc aluMpy*(
+    s: var Dsp56300State,
+    s1: int32,
+    s2: int32,
+    isDstB: bool,
+    negate: bool = false,
+    round: bool = false,
+) =
   var p = multFractional24(s1, s2)
   if negate:
     p = -p
@@ -336,11 +389,25 @@ proc aluMpy*(s: var Dsp56300State, s1: int32, s2: int32, isDstB: bool, negate: b
   var sat = false
   p = applyArithmeticSaturation(p, s.sr, sat)
 
-  if isDstB: s.setB(p) else: s.setA(p)
+  if isDstB:
+    s.setB(p)
+  else:
+    s.setA(p)
   s.updateArithmeticCcr(p, false, sat)
 
-proc aluMac*(s: var Dsp56300State, s1: int32, s2: int32, isDstB: bool, negate: bool = false, round: bool = false) =
-  let dst = if isDstB: s.getB() else: s.getA()
+proc aluMac*(
+    s: var Dsp56300State,
+    s1: int32,
+    s2: int32,
+    isDstB: bool,
+    negate: bool = false,
+    round: bool = false,
+) =
+  let dst =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
   var p = multFractional24(s1, s2)
   if negate:
     p = -p
@@ -363,22 +430,62 @@ proc aluMac*(s: var Dsp56300State, s1: int32, s2: int32, isDstB: bool, negate: b
   var sat = false
   res = applyArithmeticSaturation(res, s.sr, sat)
 
-  if isDstB: s.setB(res) else: s.setA(res)
+  if isDstB:
+    s.setB(res)
+  else:
+    s.setA(res)
   s.updateArithmeticCcr(res, cOut, v or sat)
 
-proc aluMpySu*(s: var Dsp56300State, s1: uint32, s2: uint32, isDstB: bool, s1Signed: bool, s2Signed: bool) =
-  let v1 = if s1Signed: int64(signExtend24(s1)) else: int64(s1 and 0x00FFFFFF'u32)
-  let v2 = if s2Signed: int64(signExtend24(s2)) else: int64(s2 and 0x00FFFFFF'u32)
+proc aluMpySu*(
+    s: var Dsp56300State,
+    s1: uint32,
+    s2: uint32,
+    isDstB: bool,
+    s1Signed: bool,
+    s2Signed: bool,
+) =
+  let v1 =
+    if s1Signed:
+      int64(signExtend24(s1))
+    else:
+      int64(s1 and 0x00FFFFFF'u32)
+  let v2 =
+    if s2Signed:
+      int64(signExtend24(s2))
+    else:
+      int64(s2 and 0x00FFFFFF'u32)
   let p = (v1 * v2) shl 1
   let res = signExtend56(cast[uint64](p))
 
-  if isDstB: s.setB(res) else: s.setA(res)
+  if isDstB:
+    s.setB(res)
+  else:
+    s.setA(res)
   s.updateArithmeticCcr(res, false, false)
 
-proc aluMacSu*(s: var Dsp56300State, s1: uint32, s2: uint32, isDstB: bool, s1Signed: bool, s2Signed: bool) =
-  let dst = if isDstB: s.getB() else: s.getA()
-  let v1 = if s1Signed: int64(signExtend24(s1)) else: int64(s1 and 0x00FFFFFF'u32)
-  let v2 = if s2Signed: int64(signExtend24(s2)) else: int64(s2 and 0x00FFFFFF'u32)
+proc aluMacSu*(
+    s: var Dsp56300State,
+    s1: uint32,
+    s2: uint32,
+    isDstB: bool,
+    s1Signed: bool,
+    s2Signed: bool,
+) =
+  let dst =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
+  let v1 =
+    if s1Signed:
+      int64(signExtend24(s1))
+    else:
+      int64(s1 and 0x00FFFFFF'u32)
+  let v2 =
+    if s2Signed:
+      int64(signExtend24(s2))
+    else:
+      int64(s2 and 0x00FFFFFF'u32)
   let p = signExtend56(cast[uint64]((v1 * v2) shl 1))
 
   let rawDst = cast[uint64](dst) and 0x00FFFFFFFFFFFFFF'u64
@@ -393,16 +500,39 @@ proc aluMacSu*(s: var Dsp56300State, s1: uint32, s2: uint32, isDstB: bool, s1Sig
   let signRes = res.bit55
   let v = (signDst == signP) and (signDst != signRes)
 
-  if isDstB: s.setB(res) else: s.setA(res)
+  if isDstB:
+    s.setB(res)
+  else:
+    s.setA(res)
   s.updateArithmeticCcr(res, cOut, v)
 
-proc aluDmac*(s: var Dsp56300State, s1: uint32, s2: uint32, isDstB: bool, s1Signed: bool, s2Signed: bool, negate: bool = false) =
+proc aluDmac*(
+    s: var Dsp56300State,
+    s1: uint32,
+    s2: uint32,
+    isDstB: bool,
+    s1Signed: bool,
+    s2Signed: bool,
+    negate: bool = false,
+) =
   # [D -> 24] +- S1 * S2 -> D
-  let dst = if isDstB: s.getB() else: s.getA()
+  let dst =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
   let shiftedDst = dst shr 24 # 24-bit arithmetic right shift
 
-  let v1 = if s1Signed: int64(signExtend24(s1)) else: int64(s1 and 0x00FFFFFF'u32)
-  let v2 = if s2Signed: int64(signExtend24(s2)) else: int64(s2 and 0x00FFFFFF'u32)
+  let v1 =
+    if s1Signed:
+      int64(signExtend24(s1))
+    else:
+      int64(s1 and 0x00FFFFFF'u32)
+  let v2 =
+    if s2Signed:
+      int64(signExtend24(s2))
+    else:
+      int64(s2 and 0x00FFFFFF'u32)
   var p = signExtend56(cast[uint64]((v1 * v2) shl 1))
   if negate:
     p = -p
@@ -419,61 +549,97 @@ proc aluDmac*(s: var Dsp56300State, s1: uint32, s2: uint32, isDstB: bool, s1Sign
   let signRes = res.bit55
   let v = (signDst == signP) and (signDst != signRes)
 
-  if isDstB: s.setB(res) else: s.setA(res)
+  if isDstB:
+    s.setB(res)
+  else:
+    s.setA(res)
   s.updateArithmeticCcr(res, cOut, v)
 
 # Shifting & Rotation
 proc aluAsl*(s: var Dsp56300State, isDstB: bool, shiftCount: int = 1) =
-  var val = if isDstB: s.getB() else: s.getA()
+  var val =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
   var cOut = false
   var vOut = false
 
-  for _ in 1..shiftCount:
+  for _ in 1 .. shiftCount:
     let oldSign = val.bit55
     cOut = (val.bit55 != 0)
     val = signExtend56((cast[uint64](val) shl 1) and 0x00FFFFFFFFFFFFFF'u64)
     if val.bit55 != oldSign:
       vOut = true
 
-  if isDstB: s.setB(val) else: s.setA(val)
+  if isDstB:
+    s.setB(val)
+  else:
+    s.setA(val)
   s.updateArithmeticCcr(val, cOut, vOut)
 
 proc aluAsr*(s: var Dsp56300State, isDstB: bool, shiftCount: int = 1) =
-  var val = if isDstB: s.getB() else: s.getA()
+  var val =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
   var cOut = false
 
-  for _ in 1..shiftCount:
+  for _ in 1 .. shiftCount:
     cOut = (val.bit(0) != 0)
     let signBit = uint64(val.bit55) shl 55
-    val = signExtend56(((cast[uint64](val) and 0x00FFFFFFFFFFFFFF'u64) shr 1) or signBit)
+    val =
+      signExtend56(((cast[uint64](val) and 0x00FFFFFFFFFFFFFF'u64) shr 1) or signBit)
 
-  if isDstB: s.setB(val) else: s.setA(val)
+  if isDstB:
+    s.setB(val)
+  else:
+    s.setA(val)
   s.updateArithmeticCcr(val, cOut, false)
 
 proc aluLsl*(s: var Dsp56300State, isDstB: bool, shiftCount: int = 1) =
-  var val = if isDstB: s.getB() else: s.getA()
+  var val =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
   var cOut = false
 
-  for _ in 1..shiftCount:
+  for _ in 1 .. shiftCount:
     cOut = (val.bit55 != 0)
     val = signExtend56((cast[uint64](val) shl 1) and 0x00FFFFFFFFFFFFFF'u64)
 
-  if isDstB: s.setB(val) else: s.setA(val)
+  if isDstB:
+    s.setB(val)
+  else:
+    s.setA(val)
   s.updateArithmeticCcr(val, cOut, false)
 
 proc aluLsr*(s: var Dsp56300State, isDstB: bool, shiftCount: int = 1) =
-  var val = if isDstB: s.getB() else: s.getA()
+  var val =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
   var cOut = false
 
-  for _ in 1..shiftCount:
+  for _ in 1 .. shiftCount:
     cOut = (val.bit(0) != 0)
     val = signExtend56((cast[uint64](val) and 0x00FFFFFFFFFFFFFF'u64) shr 1)
 
-  if isDstB: s.setB(val) else: s.setA(val)
+  if isDstB:
+    s.setB(val)
+  else:
+    s.setA(val)
   s.updateArithmeticCcr(val, cOut, false)
 
 proc aluRol*(s: var Dsp56300State, isDstB: bool) =
-  let val = if isDstB: s.getB() else: s.getA()
+  let val =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
   let cIn = uint64(if (s.sr and SR_C) != 0: 1 else: 0)
   let cOut = (val.bit55 != 0)
   let res = signExtend56(((cast[uint64](val) shl 1) and 0x00FFFFFFFFFFFFFF'u64) or cIn)
@@ -481,11 +647,18 @@ proc aluRol*(s: var Dsp56300State, isDstB: bool) =
   let oldSign = val.bit55
   let vOut = (res.bit55 != oldSign)
 
-  if isDstB: s.setB(res) else: s.setA(res)
+  if isDstB:
+    s.setB(res)
+  else:
+    s.setA(res)
   s.updateArithmeticCcr(res, cOut, vOut)
 
 proc aluRor*(s: var Dsp56300State, isDstB: bool) =
-  let val = if isDstB: s.getB() else: s.getA()
+  let val =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
   let cIn = uint64(if (s.sr and SR_C) != 0: 1 else: 0) shl 55
   let cOut = (val.bit(0) != 0)
   let res = signExtend56(((cast[uint64](val) and 0x00FFFFFFFFFFFFFF'u64) shr 1) or cIn)
@@ -493,7 +666,10 @@ proc aluRor*(s: var Dsp56300State, isDstB: bool) =
   let oldSign = val.bit55
   let vOut = (res.bit55 != oldSign)
 
-  if isDstB: s.setB(res) else: s.setA(res)
+  if isDstB:
+    s.setB(res)
+  else:
+    s.setA(res)
   s.updateArithmeticCcr(res, cOut, vOut)
 
 proc aluNorm*(s: var Dsp56300State, rIdx: int, isDstB: bool) =
@@ -513,7 +689,11 @@ proc aluNorm*(s: var Dsp56300State, rIdx: int, isDstB: bool) =
 
 proc aluDiv*(s: var Dsp56300State, s24: uint32, isDstB: bool) =
   # Nonrestoring division step (DSP56300FM Section 13, page 13-52)
-  var d = if isDstB: s.getB() else: s.getA()
+  var d =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
   let sSign = (s24 shr 23) and 1'u32
   let dSign = d.bit55
   let signDiff = (dSign xor sSign) != 0
@@ -538,12 +718,17 @@ proc aluDiv*(s: var Dsp56300State, s24: uint32, isDstB: bool) =
   let v = (res.bit55 != oldSign)
   let c = (res.bit55 == 0) # C set if bit 55 of result is cleared
 
-  if isDstB: s.setB(res) else: s.setA(res)
+  if isDstB:
+    s.setB(res)
+  else:
+    s.setA(res)
 
   # Update CCR for DIV: only L, V, C affected
   var ccr = s.sr and not (SR_C or SR_V)
-  if c: ccr = ccr or SR_C
-  if v: ccr = ccr or SR_V or SR_L
+  if c:
+    ccr = ccr or SR_C
+  if v:
+    ccr = ccr or SR_V or SR_L
   s.sr = ccr
 
 proc aluMax*(s: var Dsp56300State, isSrcB: bool) =
@@ -561,8 +746,16 @@ proc aluMaxm*(s: var Dsp56300State, isSrcB: bool) =
   # If |B| - |A| <= 0 then A -> B
   let aVal = s.getA()
   let bVal = s.getB()
-  let absA = if aVal < 0: -aVal else: aVal
-  let absB = if bVal < 0: -bVal else: bVal
+  let absA =
+    if aVal < 0:
+      -aVal
+    else:
+      aVal
+  let absB =
+    if bVal < 0:
+      -bVal
+    else:
+      bVal
   if (absB - absA) <= 0:
     s.setB(aVal)
     s.sr = s.sr and not SR_C
@@ -570,81 +763,139 @@ proc aluMaxm*(s: var Dsp56300State, isSrcB: bool) =
     s.sr = s.sr or SR_C
 
 proc aluAbs*(s: var Dsp56300State, isDstB: bool) =
-  let val = if isDstB: s.getB() else: s.getA()
-  var res = if val < 0: -val else: val
+  let val =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
+  var res =
+    if val < 0:
+      -val
+    else:
+      val
   let v = (val == CONST_NEG_SAT48) # Overflow if negating most negative number
 
   var sat = false
   res = applyArithmeticSaturation(res, s.sr, sat)
 
-  if isDstB: s.setB(res) else: s.setA(res)
+  if isDstB:
+    s.setB(res)
+  else:
+    s.setA(res)
   s.updateArithmeticCcr(res, false, v or sat)
 
 proc aluNeg*(s: var Dsp56300State, isDstB: bool) =
-  let val = if isDstB: s.getB() else: s.getA()
-  var res = signExtend56((cast[uint64](0) - cast[uint64](val)) and 0x00FFFFFFFFFFFFFF'u64)
+  let val =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
+  var res =
+    signExtend56((cast[uint64](0) - cast[uint64](val)) and 0x00FFFFFFFFFFFFFF'u64)
   let v = (val == CONST_NEG_SAT48)
   let c = (val != 0)
 
   var sat = false
   res = applyArithmeticSaturation(res, s.sr, sat)
 
-  if isDstB: s.setB(res) else: s.setA(res)
+  if isDstB:
+    s.setB(res)
+  else:
+    s.setA(res)
   s.updateArithmeticCcr(res, c, v or sat)
 
 proc aluNot*(s: var Dsp56300State, isDstB: bool) =
   # Inverts bits 47..24 (MSP)
-  let val = if isDstB: s.getB() else: s.getA()
+  let val =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
   let u = cast[uint64](val)
   let invMsp = (u xor 0x0000FFFFFF000000'u64) and 0x00FFFFFFFFFFFFFF'u64
   let res = signExtend56(invMsp)
 
-  if isDstB: s.setB(res) else: s.setA(res)
+  if isDstB:
+    s.setB(res)
+  else:
+    s.setA(res)
   s.updateLogicalCcr(res)
 
 proc aluAnd*(s: var Dsp56300State, src24: uint32, isDstB: bool) =
   # AND source with MSP (bits 47..24)
-  let val = if isDstB: s.getB() else: s.getA()
+  let val =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
   let u = cast[uint64](val)
   let mask = (uint64(src24 and 0x00FFFFFF'u32) shl 24) or 0x00FF000000FFFFFF'u64
   let res = signExtend56(u and mask)
 
-  if isDstB: s.setB(res) else: s.setA(res)
+  if isDstB:
+    s.setB(res)
+  else:
+    s.setA(res)
   s.updateLogicalCcr(res)
 
 proc aluOr*(s: var Dsp56300State, src24: uint32, isDstB: bool) =
   # OR source with MSP (bits 47..24)
-  let val = if isDstB: s.getB() else: s.getA()
+  let val =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
   let u = cast[uint64](val)
   let mask = uint64(src24 and 0x00FFFFFF'u32) shl 24
   let res = signExtend56(u or mask)
 
-  if isDstB: s.setB(res) else: s.setA(res)
+  if isDstB:
+    s.setB(res)
+  else:
+    s.setA(res)
   s.updateLogicalCcr(res)
 
 proc aluEor*(s: var Dsp56300State, src24: uint32, isDstB: bool) =
   # EOR source with MSP (bits 47..24)
-  let val = if isDstB: s.getB() else: s.getA()
+  let val =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
   let u = cast[uint64](val)
   let mask = uint64(src24 and 0x00FFFFFF'u32) shl 24
   let res = signExtend56(u xor mask)
 
-  if isDstB: s.setB(res) else: s.setA(res)
+  if isDstB:
+    s.setB(res)
+  else:
+    s.setA(res)
   s.updateLogicalCcr(res)
 
 proc aluRnd*(s: var Dsp56300State, isDstB: bool) =
-  let val = if isDstB: s.getB() else: s.getA()
+  let val =
+    if isDstB:
+      s.getB()
+    else:
+      s.getA()
   var res = roundAccumulator(val, s.sr)
 
   var sat = false
   res = applyArithmeticSaturation(res, s.sr, sat)
 
-  if isDstB: s.setB(res) else: s.setA(res)
+  if isDstB:
+    s.setB(res)
+  else:
+    s.setA(res)
   s.updateArithmeticCcr(res, false, sat)
 
 proc aluClb*(s: var Dsp56300State, isSrcB: bool, isDstB: bool) =
   # Count leading bits: 9 - (number of consecutive leading zeros/ones)
-  let sVal = if isSrcB: s.getB() else: s.getA()
+  let sVal =
+    if isSrcB:
+      s.getB()
+    else:
+      s.getA()
   let u = cast[uint64](sVal) and 0x00FFFFFFFFFFFFFF'u64
   let sign = (u shr 55) and 1'u64
 
@@ -664,7 +915,10 @@ proc aluClb*(s: var Dsp56300State, isSrcB: bool, isDstB: bool) =
   let resWord = uint32(resInt) and 0x00FFFFFF'u32
   let finalVal = signExtend56(uint64(resWord) shl 24)
 
-  if isDstB: s.setB(finalVal) else: s.setA(finalVal)
+  if isDstB:
+    s.setB(finalVal)
+  else:
+    s.setA(finalVal)
 
   var ccr = s.sr and not (SR_N or SR_Z or SR_V)
   if resInt < 0:
@@ -674,9 +928,15 @@ proc aluClb*(s: var Dsp56300State, isSrcB: bool, isDstB: bool) =
   s.sr = ccr
 
 proc aluClr*(s: var Dsp56300State, isDstB: bool) =
-  if isDstB: s.setB(0) else: s.setA(0)
+  if isDstB:
+    s.setB(0)
+  else:
+    s.setA(0)
   s.updateArithmeticCcr(0, false, false)
 
 proc aluTfr*(s: var Dsp56300State, src: int64, isDstB: bool) =
-  if isDstB: s.setB(src) else: s.setA(src)
+  if isDstB:
+    s.setB(src)
+  else:
+    s.setA(src)
   s.updateArithmeticCcr(src, false, false)

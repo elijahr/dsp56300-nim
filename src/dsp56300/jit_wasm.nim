@@ -60,39 +60,48 @@ proc wasmLoadAcc(body: var seq[byte], accReg: RegId) =
   # local.get 0 (statePtr)
   body.add([0x20'u8, 0x00])
   # i32.load8_u align=0, offset=offA2
-  body.add([0x2D'u8, 0x00]); writeU32Leb128(body, offA2)
+  body.add([0x2D'u8, 0x00])
+  writeU32Leb128(body, offA2)
   # i64.extend_i32_u
   body.add(0xAD'u8)
   # i64.const 48
-  body.add(0x42'u8); writeI64Leb128(body, 48'i64)
+  body.add(0x42'u8)
+  writeI64Leb128(body, 48'i64)
   # i64.shl
   body.add(0x86'u8)
 
   # local.get 0
   body.add([0x20'u8, 0x00])
   # i32.load align=2, offset=offA1
-  body.add([0x28'u8, 0x02]); writeU32Leb128(body, offA1)
+  body.add([0x28'u8, 0x02])
+  writeU32Leb128(body, offA1)
   # i32.const 0x00FFFFFF
-  body.add(0x41'u8); writeI32Leb128(body, 0x00FFFFFF'i32)
+  body.add(0x41'u8)
+  writeI32Leb128(body, 0x00FFFFFF'i32)
   body.add(0x71'u8) # i32.and
   body.add(0xAD'u8) # i64.extend_i32_u
-  body.add(0x42'u8); writeI64Leb128(body, 24'i64) # i64.const 24
+  body.add(0x42'u8)
+  writeI64Leb128(body, 24'i64) # i64.const 24
   body.add(0x86'u8) # i64.shl
   body.add(0x84'u8) # i64.or
 
   # local.get 0
   body.add([0x20'u8, 0x00])
   # i32.load align=2, offset=offA0
-  body.add([0x28'u8, 0x02]); writeU32Leb128(body, offA0)
-  body.add(0x41'u8); writeI32Leb128(body, 0x00FFFFFF'i32)
+  body.add([0x28'u8, 0x02])
+  writeU32Leb128(body, offA0)
+  body.add(0x41'u8)
+  writeI32Leb128(body, 0x00FFFFFF'i32)
   body.add(0x71'u8) # i32.and
   body.add(0xAD'u8) # i64.extend_i32_u
   body.add(0x84'u8) # i64.or
 
   # Sign-extend 56 bits: i64.shl 8; i64.shr_s 8
-  body.add(0x42'u8); writeI64Leb128(body, 8'i64)
+  body.add(0x42'u8)
+  writeI64Leb128(body, 8'i64)
   body.add(0x86'u8) # i64.shl
-  body.add(0x42'u8); writeI64Leb128(body, 8'i64)
+  body.add(0x42'u8)
+  writeI64Leb128(body, 8'i64)
   body.add(0x87'u8) # i64.shr_s
   # local.set 3
   body.add([0x21'u8, 0x03])
@@ -105,28 +114,35 @@ proc wasmStoreAcc(body: var seq[byte], accReg: RegId) =
   # Store A0:
   body.add([0x20'u8, 0x00]) # local.get 0
   body.add([0x20'u8, 0x03]) # local.get 3
-  body.add(0xA7'u8)         # i32.wrap_i64
-  body.add(0x41'u8); writeI32Leb128(body, 0x00FFFFFF'i32)
-  body.add(0x71'u8)         # i32.and
-  body.add([0x36'u8, 0x02]); writeU32Leb128(body, offA0) # i32.store
+  body.add(0xA7'u8) # i32.wrap_i64
+  body.add(0x41'u8)
+  writeI32Leb128(body, 0x00FFFFFF'i32)
+  body.add(0x71'u8) # i32.and
+  body.add([0x36'u8, 0x02])
+  writeU32Leb128(body, offA0) # i32.store
 
   # Store A1:
   body.add([0x20'u8, 0x00]) # local.get 0
   body.add([0x20'u8, 0x03]) # local.get 3
-  body.add(0x42'u8); writeI64Leb128(body, 24'i64)
-  body.add(0x88'u8)         # i64.shr_u
-  body.add(0xA7'u8)         # i32.wrap_i64
-  body.add(0x41'u8); writeI32Leb128(body, 0x00FFFFFF'i32)
-  body.add(0x71'u8)         # i32.and
-  body.add([0x36'u8, 0x02]); writeU32Leb128(body, offA1)
+  body.add(0x42'u8)
+  writeI64Leb128(body, 24'i64)
+  body.add(0x88'u8) # i64.shr_u
+  body.add(0xA7'u8) # i32.wrap_i64
+  body.add(0x41'u8)
+  writeI32Leb128(body, 0x00FFFFFF'i32)
+  body.add(0x71'u8) # i32.and
+  body.add([0x36'u8, 0x02])
+  writeU32Leb128(body, offA1)
 
   # Store A2:
   body.add([0x20'u8, 0x00]) # local.get 0
   body.add([0x20'u8, 0x03]) # local.get 3
-  body.add(0x42'u8); writeI64Leb128(body, 48'i64)
-  body.add(0x88'u8)         # i64.shr_u
-  body.add(0xA7'u8)         # i32.wrap_i64
-  body.add([0x3A'u8, 0x00]); writeU32Leb128(body, offA2) # i32.store8
+  body.add(0x42'u8)
+  writeI64Leb128(body, 48'i64)
+  body.add(0x88'u8) # i64.shr_u
+  body.add(0xA7'u8) # i32.wrap_i64
+  body.add([0x3A'u8, 0x00])
+  writeU32Leb128(body, offA2) # i32.store8
 
 proc compileWasmModule*(blk: IrBasicBlock): seq[byte] =
   ## Compiles any Micro-Op IR basic block into a valid standalone WebAssembly binary module in memory.
@@ -135,17 +151,17 @@ proc compileWasmModule*(blk: IrBasicBlock): seq[byte] =
 
   # 1. Type Section (Section 1): Function signature (i32) -> i32
   var typePayload: seq[byte] = @[]
-  typePayload.add(1'u8)     # Vector count: 1 type
-  typePayload.add(0x60'u8)  # Form: func
-  typePayload.add(1'u8)     # Param count: 1
-  typePayload.add(0x7F'u8)  # Param type: i32 (statePtr)
-  typePayload.add(1'u8)     # Result count: 1
-  typePayload.add(0x7F'u8)  # Result type: i32 (cycles executed)
+  typePayload.add(1'u8) # Vector count: 1 type
+  typePayload.add(0x60'u8) # Form: func
+  typePayload.add(1'u8) # Param count: 1
+  typePayload.add(0x7F'u8) # Param type: i32 (statePtr)
+  typePayload.add(1'u8) # Result count: 1
+  typePayload.add(0x7F'u8) # Result type: i32 (cycles executed)
   result.add(makeSection(1'u8, typePayload))
 
   # 2. Import Section (Section 2): import env.memory (initial 16 pages = 1MB)
   var importPayload: seq[byte] = @[]
-  importPayload.add(1'u8)    # 1 import
+  importPayload.add(1'u8) # 1 import
   # Module name: "env"
   importPayload.add(3'u8)
   importPayload.add([0x65'u8, 0x6E'u8, 0x76'u8])
@@ -178,7 +194,7 @@ proc compileWasmModule*(blk: IrBasicBlock): seq[byte] =
 
   # 5. Code Section (Section 10): Function body
   var bodyBytes: seq[byte] = @[]
-  
+
   # Locals declaration:
   # local 1: i32 (scratch / addr)
   # local 2: i32 (loopCounter)
@@ -208,107 +224,126 @@ proc compileWasmModule*(blk: IrBasicBlock): seq[byte] =
       break
 
   if isLoopBlock:
-    bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, int32(loopIterations)) # i32.const loopIterations
-    bodyBytes.add([0x21'u8, 0x02])                                            # local.set 2
-    bodyBytes.add([0x02'u8, 0x40])                                            # block void
-    bodyBytes.add([0x03'u8, 0x40])                                            # loop void
-    bodyBytes.add([0x20'u8, 0x02])                                            # local.get 2
-    bodyBytes.add(0x45'u8)                                                    # i32.eqz
-    bodyBytes.add([0x0D'u8, 0x01])                                            # br_if 1 (exit block)
+    bodyBytes.add(0x41'u8)
+    writeI32Leb128(bodyBytes, int32(loopIterations)) # i32.const loopIterations
+    bodyBytes.add([0x21'u8, 0x02]) # local.set 2
+    bodyBytes.add([0x02'u8, 0x40]) # block void
+    bodyBytes.add([0x03'u8, 0x40]) # loop void
+    bodyBytes.add([0x20'u8, 0x02]) # local.get 2
+    bodyBytes.add(0x45'u8) # i32.eqz
+    bodyBytes.add([0x0D'u8, 0x01]) # br_if 1 (exit block)
 
   for rawOp in blk.ops:
     let op = canonicalizeOp(rawOp)
     case op.kind
     of IrOpKind.irNop, IrOpKind.irCheckGen:
       discard
-
     of IrOpKind.irLoadImm:
       let dstOff = regOffset(op.dst)
       if dstOff >= 0:
         bodyBytes.add([0x20'u8, 0x00]) # local.get 0
-        bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, int32(op.imm and 0x00FFFFFF'u32))
-        bodyBytes.add([0x36'u8, 0x02]); writeU32Leb128(bodyBytes, uint32(dstOff)) # i32.store
-
+        bodyBytes.add(0x41'u8)
+        writeI32Leb128(bodyBytes, int32(op.imm and 0x00FFFFFF'u32))
+        bodyBytes.add([0x36'u8, 0x02])
+        writeU32Leb128(bodyBytes, uint32(dstOff)) # i32.store
     of IrOpKind.irLoadReg, IrOpKind.irStoreReg:
       let srcOff = regOffset(op.src1)
       let dstOff = regOffset(op.dst)
       if srcOff >= 0 and dstOff >= 0:
         bodyBytes.add([0x20'u8, 0x00])
         bodyBytes.add([0x20'u8, 0x00])
-        bodyBytes.add([0x28'u8, 0x02]); writeU32Leb128(bodyBytes, uint32(srcOff))
-        bodyBytes.add([0x36'u8, 0x02]); writeU32Leb128(bodyBytes, uint32(dstOff))
-
+        bodyBytes.add([0x28'u8, 0x02])
+        writeU32Leb128(bodyBytes, uint32(srcOff))
+        bodyBytes.add([0x36'u8, 0x02])
+        writeU32Leb128(bodyBytes, uint32(dstOff))
     of IrOpKind.irLoadMem:
       let dstOff = regOffset(op.dst)
       if dstOff >= 0:
         # Compute memory linear address: (r[rNum] * 4) + ramBase
-        let ramBase = if op.space == MemSpace.memX: WASM_X_RAM_BASE else: WASM_Y_RAM_BASE
+        let ramBase =
+          if op.space == MemSpace.memX: WASM_X_RAM_BASE else: WASM_Y_RAM_BASE
         if op.addrMode == AddrMode.amAbsolute:
-          bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, int32(ramBase + (op.imm * 4)))
+          bodyBytes.add(0x41'u8)
+          writeI32Leb128(bodyBytes, int32(ramBase + (op.imm * 4)))
         else:
           let rOff = OFFSET_R + int(op.rNum) * 4
           bodyBytes.add([0x20'u8, 0x00])
-          bodyBytes.add([0x28'u8, 0x02]); writeU32Leb128(bodyBytes, uint32(rOff))
-          bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, 2'i32)
+          bodyBytes.add([0x28'u8, 0x02])
+          writeU32Leb128(bodyBytes, uint32(rOff))
+          bodyBytes.add(0x41'u8)
+          writeI32Leb128(bodyBytes, 2'i32)
           bodyBytes.add(0x74'u8) # i32.shl
-          bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, int32(ramBase))
+          bodyBytes.add(0x41'u8)
+          writeI32Leb128(bodyBytes, int32(ramBase))
           bodyBytes.add(0x6A'u8) # i32.add
         bodyBytes.add([0x28'u8, 0x02, 0x00]) # i32.load offset=0
-        bodyBytes.add([0x21'u8, 0x01])       # local.set 1 (value)
+        bodyBytes.add([0x21'u8, 0x01]) # local.set 1 (value)
 
         # Store to dst in DspState:
         bodyBytes.add([0x20'u8, 0x00])
         bodyBytes.add([0x20'u8, 0x01])
-        bodyBytes.add([0x36'u8, 0x02]); writeU32Leb128(bodyBytes, uint32(dstOff))
-
+        bodyBytes.add([0x36'u8, 0x02])
+        writeU32Leb128(bodyBytes, uint32(dstOff))
     of IrOpKind.irStoreMem:
       let srcOff = regOffset(op.src1)
       if srcOff >= 0:
-        let ramBase = if op.space == MemSpace.memX: WASM_X_RAM_BASE else: WASM_Y_RAM_BASE
+        let ramBase =
+          if op.space == MemSpace.memX: WASM_X_RAM_BASE else: WASM_Y_RAM_BASE
         if op.addrMode == AddrMode.amAbsolute:
-          bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, int32(ramBase + (op.imm * 4)))
+          bodyBytes.add(0x41'u8)
+          writeI32Leb128(bodyBytes, int32(ramBase + (op.imm * 4)))
         else:
           let rOff = OFFSET_R + int(op.rNum) * 4
           bodyBytes.add([0x20'u8, 0x00])
-          bodyBytes.add([0x28'u8, 0x02]); writeU32Leb128(bodyBytes, uint32(rOff))
-          bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, 2'i32)
+          bodyBytes.add([0x28'u8, 0x02])
+          writeU32Leb128(bodyBytes, uint32(rOff))
+          bodyBytes.add(0x41'u8)
+          writeI32Leb128(bodyBytes, 2'i32)
           bodyBytes.add(0x74'u8)
-          bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, int32(ramBase))
+          bodyBytes.add(0x41'u8)
+          writeI32Leb128(bodyBytes, int32(ramBase))
           bodyBytes.add(0x6A'u8)
 
         bodyBytes.add([0x20'u8, 0x00])
-        bodyBytes.add([0x28'u8, 0x02]); writeU32Leb128(bodyBytes, uint32(srcOff))
+        bodyBytes.add([0x28'u8, 0x02])
+        writeU32Leb128(bodyBytes, uint32(srcOff))
         bodyBytes.add([0x36'u8, 0x02, 0x00]) # i32.store offset=0
-
     of IrOpKind.irAguUpdate:
       let rOff = uint32(OFFSET_R + int(op.rNum) * 4)
       bodyBytes.add([0x20'u8, 0x00]) # local.get 0
       bodyBytes.add([0x20'u8, 0x00])
-      bodyBytes.add([0x28'u8, 0x02]); writeU32Leb128(bodyBytes, rOff) # i32.load r
+      bodyBytes.add([0x28'u8, 0x02])
+      writeU32Leb128(bodyBytes, rOff) # i32.load r
 
       case op.addrMode
       of AddrMode.amPostInc:
-        bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, 1'i32)
+        bodyBytes.add(0x41'u8)
+        writeI32Leb128(bodyBytes, 1'i32)
         bodyBytes.add(0x6A'u8) # i32.add
       of AddrMode.amPostDec:
-        bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, 1'i32)
+        bodyBytes.add(0x41'u8)
+        writeI32Leb128(bodyBytes, 1'i32)
         bodyBytes.add(0x6B'u8) # i32.sub
       of AddrMode.amPostIncN:
         let nOff = uint32(OFFSET_N + int(op.rNum) * 4)
         bodyBytes.add([0x20'u8, 0x00])
-        bodyBytes.add([0x28'u8, 0x02]); writeU32Leb128(bodyBytes, nOff)
+        bodyBytes.add([0x28'u8, 0x02])
+        writeU32Leb128(bodyBytes, nOff)
         bodyBytes.add(0x6A'u8)
       of AddrMode.amPostDecN:
         let nOff = uint32(OFFSET_N + int(op.rNum) * 4)
         bodyBytes.add([0x20'u8, 0x00])
-        bodyBytes.add([0x28'u8, 0x02]); writeU32Leb128(bodyBytes, nOff)
+        bodyBytes.add([0x28'u8, 0x02])
+        writeU32Leb128(bodyBytes, nOff)
         bodyBytes.add(0x6B'u8)
-      else: discard
+      else:
+        discard
 
-      bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, 0x00FFFFFF'i32)
+      bodyBytes.add(0x41'u8)
+      writeI32Leb128(bodyBytes, 0x00FFFFFF'i32)
       bodyBytes.add(0x71'u8) # i32.and
-      bodyBytes.add([0x36'u8, 0x02]); writeU32Leb128(bodyBytes, rOff) # i32.store
-
+      bodyBytes.add([0x36'u8, 0x02])
+      writeU32Leb128(bodyBytes, rOff) # i32.store
     of IrOpKind.irAluOp:
       case op.aluOp
       of AluOp.opMpy, AluOp.opMpyr:
@@ -316,67 +351,84 @@ proc compileWasmModule*(blk: IrBasicBlock): seq[byte] =
         let src2Off = regOffset(op.src2)
         # Load s1 (sign-extended to 32, then i64):
         bodyBytes.add([0x20'u8, 0x00])
-        bodyBytes.add([0x28'u8, 0x02]); writeU32Leb128(bodyBytes, uint32(src1Off))
-        bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, 8'i32)
+        bodyBytes.add([0x28'u8, 0x02])
+        writeU32Leb128(bodyBytes, uint32(src1Off))
+        bodyBytes.add(0x41'u8)
+        writeI32Leb128(bodyBytes, 8'i32)
         bodyBytes.add(0x74'u8) # i32.shl
-        bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, 8'i32)
+        bodyBytes.add(0x41'u8)
+        writeI32Leb128(bodyBytes, 8'i32)
         bodyBytes.add(0x75'u8) # i32.shr_s
         bodyBytes.add(0xAC'u8) # i64.extend_i32_s
 
         # Load s2:
         bodyBytes.add([0x20'u8, 0x00])
-        bodyBytes.add([0x28'u8, 0x02]); writeU32Leb128(bodyBytes, uint32(src2Off))
-        bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, 8'i32)
+        bodyBytes.add([0x28'u8, 0x02])
+        writeU32Leb128(bodyBytes, uint32(src2Off))
+        bodyBytes.add(0x41'u8)
+        writeI32Leb128(bodyBytes, 8'i32)
         bodyBytes.add(0x74'u8)
-        bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, 8'i32)
+        bodyBytes.add(0x41'u8)
+        writeI32Leb128(bodyBytes, 8'i32)
         bodyBytes.add(0x75'u8)
         bodyBytes.add(0xAC'u8)
 
         # Multiply and shl 1
         bodyBytes.add(0x7E'u8) # i64.mul
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 1'i64)
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 1'i64)
         bodyBytes.add(0x86'u8) # i64.shl
 
         if op.isNeg:
           bodyBytes.add([0x21'u8, 0x04]) # local.set 4
-          bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 0'i64)
+          bodyBytes.add(0x42'u8)
+          writeI64Leb128(bodyBytes, 0'i64)
           bodyBytes.add([0x20'u8, 0x04]) # local.get 4
-          bodyBytes.add(0x7D'u8)         # i64.sub
+          bodyBytes.add(0x7D'u8) # i64.sub
 
         # 56-bit sign-extend:
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 8'i64)
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 8'i64)
         bodyBytes.add(0x86'u8) # i64.shl
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 8'i64)
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 8'i64)
         bodyBytes.add(0x87'u8) # i64.shr_s
         bodyBytes.add([0x21'u8, 0x03]) # local.set 3
         wasmStoreAcc(bodyBytes, op.dst)
-
       of AluOp.opMac, AluOp.opMacr:
         let src1Off = regOffset(op.src1)
         let src2Off = regOffset(op.src2)
         bodyBytes.add([0x20'u8, 0x00])
-        bodyBytes.add([0x28'u8, 0x02]); writeU32Leb128(bodyBytes, uint32(src1Off))
-        bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, 8'i32)
+        bodyBytes.add([0x28'u8, 0x02])
+        writeU32Leb128(bodyBytes, uint32(src1Off))
+        bodyBytes.add(0x41'u8)
+        writeI32Leb128(bodyBytes, 8'i32)
         bodyBytes.add(0x74'u8)
-        bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, 8'i32)
+        bodyBytes.add(0x41'u8)
+        writeI32Leb128(bodyBytes, 8'i32)
         bodyBytes.add(0x75'u8)
         bodyBytes.add(0xAC'u8)
 
         bodyBytes.add([0x20'u8, 0x00])
-        bodyBytes.add([0x28'u8, 0x02]); writeU32Leb128(bodyBytes, uint32(src2Off))
-        bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, 8'i32)
+        bodyBytes.add([0x28'u8, 0x02])
+        writeU32Leb128(bodyBytes, uint32(src2Off))
+        bodyBytes.add(0x41'u8)
+        writeI32Leb128(bodyBytes, 8'i32)
         bodyBytes.add(0x74'u8)
-        bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, 8'i32)
+        bodyBytes.add(0x41'u8)
+        writeI32Leb128(bodyBytes, 8'i32)
         bodyBytes.add(0x75'u8)
         bodyBytes.add(0xAC'u8)
 
         bodyBytes.add(0x7E'u8) # i64.mul
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 1'i64)
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 1'i64)
         bodyBytes.add(0x86'u8) # i64.shl
 
         if op.isNeg:
           bodyBytes.add([0x21'u8, 0x04])
-          bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 0'i64)
+          bodyBytes.add(0x42'u8)
+          writeI64Leb128(bodyBytes, 0'i64)
           bodyBytes.add([0x20'u8, 0x04])
           bodyBytes.add(0x7D'u8)
           bodyBytes.add([0x21'u8, 0x04])
@@ -386,132 +438,155 @@ proc compileWasmModule*(blk: IrBasicBlock): seq[byte] =
         wasmLoadAcc(bodyBytes, op.dst) # loads acc into local 3
         bodyBytes.add([0x20'u8, 0x03]) # local.get 3
         bodyBytes.add([0x20'u8, 0x04]) # local.get 4
-        bodyBytes.add(0x7C'u8)         # i64.add
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 8'i64)
+        bodyBytes.add(0x7C'u8) # i64.add
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 8'i64)
         bodyBytes.add(0x86'u8)
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 8'i64)
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 8'i64)
         bodyBytes.add(0x87'u8)
         bodyBytes.add([0x21'u8, 0x03])
         wasmStoreAcc(bodyBytes, op.dst)
-
       of AluOp.opAdd:
         let src1Off = regOffset(op.src1)
         bodyBytes.add([0x20'u8, 0x00])
-        bodyBytes.add([0x28'u8, 0x02]); writeU32Leb128(bodyBytes, uint32(src1Off))
-        bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, 8'i32)
+        bodyBytes.add([0x28'u8, 0x02])
+        writeU32Leb128(bodyBytes, uint32(src1Off))
+        bodyBytes.add(0x41'u8)
+        writeI32Leb128(bodyBytes, 8'i32)
         bodyBytes.add(0x74'u8)
-        bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, 8'i32)
+        bodyBytes.add(0x41'u8)
+        writeI32Leb128(bodyBytes, 8'i32)
         bodyBytes.add(0x75'u8)
         bodyBytes.add(0xAC'u8)
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 24'i64)
-        bodyBytes.add(0x86'u8)         # i64.shl 24
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 24'i64)
+        bodyBytes.add(0x86'u8) # i64.shl 24
         bodyBytes.add([0x21'u8, 0x04]) # local.set 4 (term)
 
         wasmLoadAcc(bodyBytes, op.dst)
         bodyBytes.add([0x20'u8, 0x03])
         bodyBytes.add([0x20'u8, 0x04])
-        bodyBytes.add(0x7C'u8)         # i64.add
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 8'i64)
+        bodyBytes.add(0x7C'u8) # i64.add
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 8'i64)
         bodyBytes.add(0x86'u8)
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 8'i64)
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 8'i64)
         bodyBytes.add(0x87'u8)
         bodyBytes.add([0x21'u8, 0x03])
         wasmStoreAcc(bodyBytes, op.dst)
-
       of AluOp.opSub:
         let src1Off = regOffset(op.src1)
         bodyBytes.add([0x20'u8, 0x00])
-        bodyBytes.add([0x28'u8, 0x02]); writeU32Leb128(bodyBytes, uint32(src1Off))
-        bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, 8'i32)
+        bodyBytes.add([0x28'u8, 0x02])
+        writeU32Leb128(bodyBytes, uint32(src1Off))
+        bodyBytes.add(0x41'u8)
+        writeI32Leb128(bodyBytes, 8'i32)
         bodyBytes.add(0x74'u8)
-        bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, 8'i32)
+        bodyBytes.add(0x41'u8)
+        writeI32Leb128(bodyBytes, 8'i32)
         bodyBytes.add(0x75'u8)
         bodyBytes.add(0xAC'u8)
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 24'i64)
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 24'i64)
         bodyBytes.add(0x86'u8)
         bodyBytes.add([0x21'u8, 0x04])
 
         wasmLoadAcc(bodyBytes, op.dst)
         bodyBytes.add([0x20'u8, 0x03])
         bodyBytes.add([0x20'u8, 0x04])
-        bodyBytes.add(0x7D'u8)         # i64.sub
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 8'i64)
+        bodyBytes.add(0x7D'u8) # i64.sub
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 8'i64)
         bodyBytes.add(0x86'u8)
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 8'i64)
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 8'i64)
         bodyBytes.add(0x87'u8)
         bodyBytes.add([0x21'u8, 0x03])
         wasmStoreAcc(bodyBytes, op.dst)
-
       of AluOp.opClr:
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 0'i64)
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 0'i64)
         bodyBytes.add([0x21'u8, 0x03])
         wasmStoreAcc(bodyBytes, op.dst)
-
       of AluOp.opNeg:
         wasmLoadAcc(bodyBytes, op.dst)
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 0'i64)
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 0'i64)
         bodyBytes.add([0x20'u8, 0x03])
         bodyBytes.add(0x7D'u8) # i64.sub
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 8'i64)
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 8'i64)
         bodyBytes.add(0x86'u8)
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 8'i64)
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 8'i64)
         bodyBytes.add(0x87'u8)
         bodyBytes.add([0x21'u8, 0x03])
         wasmStoreAcc(bodyBytes, op.dst)
-
       of AluOp.opAsl:
         wasmLoadAcc(bodyBytes, op.dst)
         bodyBytes.add([0x20'u8, 0x03])
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 1'i64)
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 1'i64)
         bodyBytes.add(0x86'u8) # i64.shl
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 8'i64)
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 8'i64)
         bodyBytes.add(0x86'u8)
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 8'i64)
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 8'i64)
         bodyBytes.add(0x87'u8)
         bodyBytes.add([0x21'u8, 0x03])
         wasmStoreAcc(bodyBytes, op.dst)
-
       of AluOp.opAsr:
         wasmLoadAcc(bodyBytes, op.dst)
         bodyBytes.add([0x20'u8, 0x03])
-        bodyBytes.add(0x42'u8); writeI64Leb128(bodyBytes, 1'i64)
+        bodyBytes.add(0x42'u8)
+        writeI64Leb128(bodyBytes, 1'i64)
         bodyBytes.add(0x87'u8) # i64.shr_s
         bodyBytes.add([0x21'u8, 0x03])
         wasmStoreAcc(bodyBytes, op.dst)
-
       else:
         discard
-
     of IrOpKind.irBranch:
       bodyBytes.add([0x20'u8, 0x00])
-      bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, int32(op.imm))
-      bodyBytes.add([0x36'u8, 0x02]); writeU32Leb128(bodyBytes, uint32(OFFSET_PC))
-
+      bodyBytes.add(0x41'u8)
+      writeI32Leb128(bodyBytes, int32(op.imm))
+      bodyBytes.add([0x36'u8, 0x02])
+      writeU32Leb128(bodyBytes, uint32(OFFSET_PC))
     of IrOpKind.irLoopDo:
       discard
-
     else:
       discard
 
   if isLoopBlock:
     bodyBytes.add([0x20'u8, 0x02]) # local.get 2
-    bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, 1'i32)
-    bodyBytes.add(0x6B'u8)         # i32.sub
+    bodyBytes.add(0x41'u8)
+    writeI32Leb128(bodyBytes, 1'i32)
+    bodyBytes.add(0x6B'u8) # i32.sub
     bodyBytes.add([0x21'u8, 0x02]) # local.set 2
     bodyBytes.add([0x0C'u8, 0x00]) # br 0 (repeat loop)
-    bodyBytes.add(0x0B'u8)         # end loop
-    bodyBytes.add(0x0B'u8)         # end block
+    bodyBytes.add(0x0B'u8) # end loop
+    bodyBytes.add(0x0B'u8) # end block
 
   # Final PC update
-  let finalPc = if isLoopBlock: (loopEndPc + 1) else: blk.endPc
+  let finalPc =
+    if isLoopBlock:
+      (loopEndPc + 1)
+    else:
+      blk.endPc
   bodyBytes.add([0x20'u8, 0x00])
-  bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, int32(finalPc))
-  bodyBytes.add([0x36'u8, 0x02]); writeU32Leb128(bodyBytes, uint32(OFFSET_PC))
+  bodyBytes.add(0x41'u8)
+  writeI32Leb128(bodyBytes, int32(finalPc))
+  bodyBytes.add([0x36'u8, 0x02])
+  writeU32Leb128(bodyBytes, uint32(OFFSET_PC))
 
   if isLoopBlock:
     bodyBytes.add([0x20'u8, 0x00])
-    bodyBytes.add(0x41'u8); writeI32Leb128(bodyBytes, 0'i32)
-    bodyBytes.add([0x36'u8, 0x02]); writeU32Leb128(bodyBytes, uint32(OFFSET_CORE + offsetOf(Dsp56300State, lc)))
+    bodyBytes.add(0x41'u8)
+    writeI32Leb128(bodyBytes, 0'i32)
+    bodyBytes.add([0x36'u8, 0x02])
+    writeU32Leb128(bodyBytes, uint32(OFFSET_CORE + offsetOf(Dsp56300State, lc)))
 
   # Return cycles: i32.const <cycles>
   bodyBytes.add(0x41'u8)

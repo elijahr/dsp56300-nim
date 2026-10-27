@@ -134,4 +134,3 @@ if (!((TM__xNF6mvRQ4Pd1hTNM9cEHXwQ_2 = nimLoadLibrary(TM__xNF6mvRQ4Pd1hTNM9cEHXw
 	Dl_553648706_ = (tyProc__6fyjfWNeKFW9aeUK79c9c8S4g) nimGetProcAddr(TM__xNF6mvRQ4Pd1hTNM9cEHXwQ_2, "SetConsoleOutputCP");
 	Dl_553648708_ = (tyProc__6fyjfWNeKFW9aeUK79c9c8S4g) nimGetProcAddr(TM__xNF6mvRQ4Pd1hTNM9cEHXwQ_2, "SetConsoleCP");
 }
-

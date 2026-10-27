@@ -5,7 +5,6 @@ import std/[os, osproc, strformat, strutils, unittest]
 import dsp56300/[ir, jit_wasm]
 
 suite "DSP56300 WASM Bytecode JIT Backend":
-
   test "WASM JIT emits valid standalone binary module format":
     var state = newDspState()
     state.pc = 0x100'u32

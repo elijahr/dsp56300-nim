@@ -5,7 +5,6 @@ import std/unittest
 import dsp56300/peripherals/hdi08
 
 suite "DSP56311 HDI08 Host Interface":
-
   test "Reset state matches hardware specification":
     var hdi = newHdi08()
     # DSP-side reset state
@@ -13,7 +12,7 @@ suite "DSP56311 HDI08 Host Interface":
     check hdi.readDspRegister(HSR_ADDR) == 0x000002'u32 # HTDE (bit 1) = 1
     check hdi.readDspRegister(HPCR_ADDR) == 0x000000'u32
     check hdi.readDspRegister(HBAR_ADDR) == 0x000080'u32
-    
+
     # Host-side reset state
     check hdi.readHostRegister(ICR_ADDR) == 0x00'u8
     check hdi.readHostRegister(CVR_ADDR) == 0x00'u8
@@ -22,7 +21,7 @@ suite "DSP56311 HDI08 Host Interface":
 
   test "Host-to-DSP 24-bit word transfer via TXH:TXM:TXL":
     var hdi = newHdi08()
-    
+
     # Write high byte
     hdi.writeHostRegister(TXH_ADDR, 0x12'u8)
     check (hdi.readDspRegister(HSR_ADDR) and HSR_HRDF) == 0
@@ -44,7 +43,7 @@ suite "DSP56311 HDI08 Host Interface":
     # DSP reads HORX
     let dspWord = hdi.readDspRegister(HORX_ADDR)
     check dspWord == 0x123456'u32
-    
+
     # Handshake flags should update
     check (hdi.readDspRegister(HSR_ADDR) and HSR_HRDF) == 0
     check (hdi.readHostRegister(ISR_ADDR) and ISR_TXDE) != 0
@@ -53,7 +52,7 @@ suite "DSP56311 HDI08 Host Interface":
 
   test "DSP-to-Host 24-bit word transfer via HOTX to RXH:RXM:RXL":
     var hdi = newHdi08()
-    
+
     # DSP writes 24-bit word 0xABCDEF to HOTX
     hdi.writeDspRegister(HOTX_ADDR, 0xABCDEF'u32)
     check (hdi.readDspRegister(HSR_ADDR) and HSR_HTDE) == 0
@@ -76,12 +75,12 @@ suite "DSP56311 HDI08 Host Interface":
 
   test "Host Command Interrupt Vector triggering":
     var hdi = newHdi08()
-    
+
     # Host writes CVR with HC=1 and Vector $12
     hdi.writeHostRegister(CVR_ADDR, 0x80'u8 or 0x12'u8)
     check (hdi.readDspRegister(HSR_ADDR) and HSR_HCP) != 0
     check hdi.hasPendingHostCommand()
-    
+
     # Vector address = $10 + 2 * HV
     check hdi.getHostCommandVector() == (0x10'u32 + 2 * 0x12'u32)
 
@@ -93,7 +92,7 @@ suite "DSP56311 HDI08 Host Interface":
 
   test "Host Flags synchronization (HF0..HF3)":
     var hdi = newHdi08()
-    
+
     # Host sets HF0 and HF1 in ICR
     hdi.writeHostRegister(ICR_ADDR, ICR_HF0 or ICR_HF1)
     let hsr = hdi.readDspRegister(HSR_ADDR)
