@@ -5,7 +5,6 @@ import std/unittest
 import dsp56300/[decode_types, state, ir, runner]
 
 suite "DSP56300 Shared Micro-Op IR & Cold-Block Runner":
-
   test "Cold Runner executes NOP block":
     var state = newDspState()
     state.pc = 0x100'u32

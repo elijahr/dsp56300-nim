@@ -3659,4 +3659,3 @@ N_LIB_PRIVATE N_NIMCALL(void, atpsystemdotnim_Init000)(void) {
 	nimTestErrorFlag();
 }
 }
-

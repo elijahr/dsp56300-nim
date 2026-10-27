@@ -9,7 +9,6 @@ when defined(amd64):
   import dsp56300/runner
 
 suite "DSP56300 x86_64 Native JIT Compiler Backend":
-
   test "x86_64 JIT emits valid AMD64 machine code for NOP block":
     var state = newDspState()
     state.pc = 0x100'u32
@@ -37,8 +36,9 @@ suite "DSP56300 x86_64 Native JIT Compiler Backend":
 
     # Search for imul rax, rdx: 0x48, 0x0F, 0xAF, 0xC2
     var foundImul = false
-    for i in 0..<(code.len - 3):
-      if code[i] == 0x48'u8 and code[i+1] == 0x0F'u8 and code[i+2] == 0xAF'u8 and code[i+3] == 0xC2'u8:
+    for i in 0 ..< (code.len - 3):
+      if code[i] == 0x48'u8 and code[i + 1] == 0x0F'u8 and code[i + 2] == 0xAF'u8 and
+          code[i + 3] == 0xC2'u8:
         foundImul = true
         break
     check foundImul
@@ -55,8 +55,8 @@ suite "DSP56300 x86_64 Native JIT Compiler Backend":
 
     # Search for decl r12d: 0x41, 0xFF, 0xCC
     var foundDec = false
-    for i in 0..<(code.len - 2):
-      if code[i] == 0x41'u8 and code[i+1] == 0xFF'u8 and code[i+2] == 0xCC'u8:
+    for i in 0 ..< (code.len - 2):
+      if code[i] == 0x41'u8 and code[i + 1] == 0xFF'u8 and code[i + 2] == 0xCC'u8:
         foundDec = true
         break
     check foundDec

@@ -6,25 +6,61 @@ type
   RegId* {.pure.} = enum
     regNone
     # Data ALU 24-bit input registers
-    regX0, regX1, regY0, regY1
-    # Data ALU accumulator slices
-    regA0, regA1, regA2
-    regB0, regB1, regB2
-    # Data ALU 56-bit accumulator composites
-    regA, regB
-    # Long move accumulator / register pairs
-    regA10, regB10, regX, regY, regAB, regBA
-    # AGU 24-bit address registers
-    regR0, regR1, regR2, regR3, regR4, regR5, regR6, regR7
-    # AGU 24-bit offset registers
-    regN0, regN1, regN2, regN3, regN4, regN5, regN6, regN7
-    # AGU 24-bit modifier registers
-    regM0, regM1, regM2, regM3, regM4, regM5, regM6, regM7
-    # AGU extension pointer
+    regX0
+    regX1
+    regY0
+    regY1 # Data ALU accumulator slices
+    regA0
+    regA1
+    regA2
+    regB0
+    regB1
+    regB2 # Data ALU 56-bit accumulator composites
+    regA
+    regB # Long move accumulator / register pairs
+    regA10
+    regB10
+    regX
+    regY
+    regAB
+    regBA # AGU 24-bit address registers
+    regR0
+    regR1
+    regR2
+    regR3
+    regR4
+    regR5
+    regR6
+    regR7 # AGU 24-bit offset registers
+    regN0
+    regN1
+    regN2
+    regN3
+    regN4
+    regN5
+    regN6
+    regN7 # AGU 24-bit modifier registers
+    regM0
+    regM1
+    regM2
+    regM3
+    regM4
+    regM5
+    regM6
+    regM7 # AGU extension pointer
     regEP
     # Program Controller registers
-    regPC, regSR, regOMR, regSP, regSSH, regSSL, regLA, regLC
-    regVBA, regSC, regSZ
+    regPC
+    regSR
+    regOMR
+    regSP
+    regSSH
+    regSSL
+    regLA
+    regLC
+    regVBA
+    regSC
+    regSZ
 
   MemSpace* {.pure.} = enum
     memX
@@ -33,16 +69,16 @@ type
     memL
 
   AddrMode* {.pure.} = enum
-    amPostIncN       ## (Rn)+Nn
-    amPostDecN       ## (Rn)-Nn
-    amPostInc        ## (Rn)+
-    amPostDec        ## (Rn)-
-    amNoUpdate       ## (Rn)
-    amIndexedNoUpdate## (Rn+Nn)
-    amPreDec         ## -(Rn)
-    amAbsolute       ## Absolute address (ea long or short aa)
-    amImmediate      ## Immediate short or long
-    amRegDirect      ## Direct register reference
+    amPostIncN ## (Rn)+Nn
+    amPostDecN ## (Rn)-Nn
+    amPostInc ## (Rn)+
+    amPostDec ## (Rn)-
+    amNoUpdate ## (Rn)
+    amIndexedNoUpdate ## (Rn+Nn)
+    amPreDec ## -(Rn)
+    amAbsolute ## Absolute address (ea long or short aa)
+    amImmediate ## Immediate short or long
+    amRegDirect ## Direct register reference
 
   ConditionCode* {.pure.} = enum
     ccHS = 0x0 ## Carry Clear / Higher or Same (C=0)
@@ -65,15 +101,46 @@ type
   AluOp* {.pure.} = enum
     opNop
     opMove
-    opAdd, opSub, opAdc, opSbc
-    opMac, opMacr, opMpy, opMpyr
-    opNeg, opAbs, opClr, opRnd, opTfr, opTst
-    opCmp, opCmpm, opCmpu
-    opAnd, opOr, opEor, opNot
-    opAsl, opAsr, opLsl, opLsr, opRol, opRor
-    opAddr, opAddl, opSubr, opSubl
-    opDiv, opNorm, opNormf, opClb, opMax, opMaxm
-    opMerge, opInc, opDec
+    opAdd
+    opSub
+    opAdc
+    opSbc
+    opMac
+    opMacr
+    opMpy
+    opMpyr
+    opNeg
+    opAbs
+    opClr
+    opRnd
+    opTfr
+    opTst
+    opCmp
+    opCmpm
+    opCmpu
+    opAnd
+    opOr
+    opEor
+    opNot
+    opAsl
+    opAsr
+    opLsl
+    opLsr
+    opRol
+    opRor
+    opAddr
+    opAddl
+    opSubr
+    opSubl
+    opDiv
+    opNorm
+    opNormf
+    opClb
+    opMax
+    opMaxm
+    opMerge
+    opInc
+    opDec
 
   ParallelMoveKind* {.pure.} = enum
     pmNone
@@ -84,8 +151,10 @@ type
     pmYMem
     pmLMem
     pmXYDual
-    pmXR_ClassI, pmXR_ClassII
-    pmRY_ClassI, pmRY_ClassII
+    pmXR_ClassI
+    pmXR_ClassII
+    pmRY_ClassI
+    pmRY_ClassII
     pmIfCc
 
   ParallelMove* = object
@@ -145,22 +214,51 @@ type
 
   ControlOp* {.pure.} = enum
     ctrlNone
-    ctrlJmp, ctrlJsr, ctrlJcc, ctrlJscc
-    ctrlBra, ctrlBsr, ctrlBcc, ctrlBscc
-    ctrlRts, ctrlRti
-    ctrlDo, ctrlDor, ctrlDoForever, ctrlEndDo, ctrlBrkCc, ctrlRep
-    ctrlTrap, ctrlTrapCc, ctrlDebug, ctrlDebugCc
-    ctrlStop, ctrlWait, ctrlReset, ctrlIllegal
+    ctrlJmp
+    ctrlJsr
+    ctrlJcc
+    ctrlJscc
+    ctrlBra
+    ctrlBsr
+    ctrlBcc
+    ctrlBscc
+    ctrlRts
+    ctrlRti
+    ctrlDo
+    ctrlDor
+    ctrlDoForever
+    ctrlEndDo
+    ctrlBrkCc
+    ctrlRep
+    ctrlTrap
+    ctrlTrapCc
+    ctrlDebug
+    ctrlDebugCc
+    ctrlStop
+    ctrlWait
+    ctrlReset
+    ctrlIllegal
 
   BitOpKind* {.pure.} = enum
     bitNone
-    bitSet, bitClr, bitChg, bitTst
-    bitJclr, bitJset, bitJsclr, bitJsset
-    bitBrclr, bitBrset, bitBsclr, bitBsset
+    bitSet
+    bitClr
+    bitChg
+    bitTst
+    bitJclr
+    bitJset
+    bitJsclr
+    bitJsset
+    bitBrclr
+    bitBrset
+    bitBsclr
+    bitBsset
 
   MoveSpecialKind* {.pure.} = enum
     msNone
-    msMoveC, msMoveM, msMoveP
+    msMoveC
+    msMoveM
+    msMoveP
 
   Instruction* = object
     words*: uint8 ## 1 or 2 words

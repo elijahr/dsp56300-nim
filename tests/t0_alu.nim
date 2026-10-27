@@ -6,7 +6,6 @@ import dsp56300/state
 import dsp56300/alu
 
 suite "DSP56300 56-Bit Data ALU":
-
   test "56-bit accumulator pack and unpack":
     var s: Dsp56300State
     s.reset()
@@ -143,7 +142,7 @@ suite "DSP56300 56-Bit Data ALU":
     s.a1 = 0x123456'u32
     let limitedPos = s.readAccumulator24(isB = false)
     check limitedPos == CONST_POS_LIMIT24 # $7FFFFF
-    check (s.sr and SR_L) != 0             # Sticky L set
+    check (s.sr and SR_L) != 0 # Sticky L set
 
     # Negative limiting (extension register in use, bit 55 == 1)
     s.reset()
@@ -222,7 +221,7 @@ suite "DSP56300 56-Bit Data ALU":
     let divisor = 0x400000'u32
 
     # Execute 24 DIV iterations
-    for _ in 1..24:
+    for _ in 1 .. 24:
       s.aluDiv(divisor, isDstB = false)
 
     # In non-restoring division, formed quotient is in A0

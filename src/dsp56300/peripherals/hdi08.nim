@@ -1,47 +1,46 @@
 # Clean-room MIT implementation of Motorola DSP56311 / DSP56367 HDI08 Host Interface
 # Hardware Reference: DSP56311UM Chapter 7, DSP56367UM Chapter 8
 
-type
-  Hdi08* = object
-    # DSP-side registers (24-bit)
-    hcr*: uint32     # Host Control Register
-    hpcr*: uint32    # Host Port Control Register
-    hbar*: uint32    # Host Base Address Register
-    horx*: uint32    # Host Receive Data Register (read-only to DSP)
-    hotx*: uint32    # Host Transmit Data Register (write-only by DSP)
-    
-    # Host-side registers (8-bit)
-    icr*: uint8      # Interface Control Register
-    cvr*: uint8      # Command Vector Register
-    ivr*: uint8      # Interrupt Vector Register
-    
-    # Internal latches for 8-to-24 and 24-to-8 packing
-    txHigh*: uint8
-    txMid*: uint8
-    txLow*: uint8
-    rxHigh*: uint8
-    rxMid*: uint8
-    rxLow*: uint8
+type Hdi08* = object # DSP-side registers (24-bit)
+  hcr*: uint32 # Host Control Register
+  hpcr*: uint32 # Host Port Control Register
+  hbar*: uint32 # Host Base Address Register
+  horx*: uint32 # Host Receive Data Register (read-only to DSP)
+  hotx*: uint32 # Host Transmit Data Register (write-only by DSP)
 
-    # Handshake flags
-    hrdf*: bool      # Host Receive Data Full (DSP has received word to read in HORX)
-    htde*: bool      # Host Transmit Data Empty (DSP can write new word to HOTX)
-    hcp*: bool       # Host Command Pending
-    rxdf*: bool      # Receive Data Register Full (Host has received word from DSP to read in RXH/M/L)
-    txde*: bool      # Transmit Data Register Empty (Host can write new word in TXH/M/L)
-    trdy*: bool      # Transmitter Ready
+  # Host-side registers (8-bit)
+  icr*: uint8 # Interface Control Register
+  cvr*: uint8 # Command Vector Register
+  ivr*: uint8 # Interrupt Vector Register
+
+  # Internal latches for 8-to-24 and 24-to-8 packing
+  txHigh*: uint8
+  txMid*: uint8
+  txLow*: uint8
+  rxHigh*: uint8
+  rxMid*: uint8
+  rxLow*: uint8
+
+  # Handshake flags
+  hrdf*: bool # Host Receive Data Full (DSP has received word to read in HORX)
+  htde*: bool # Host Transmit Data Empty (DSP can write new word to HOTX)
+  hcp*: bool # Host Command Pending
+  rxdf*: bool
+    # Receive Data Register Full (Host has received word from DSP to read in RXH/M/L)
+  txde*: bool # Transmit Data Register Empty (Host can write new word in TXH/M/L)
+  trdy*: bool # Transmitter Ready
 
 # DSP-side Memory Map Equates
 const
-  HCR_ADDR*  = 0xFFFFC2'u32
-  HSR_ADDR*  = 0xFFFFC3'u32
+  HCR_ADDR* = 0xFFFFC2'u32
+  HSR_ADDR* = 0xFFFFC3'u32
   HPCR_ADDR* = 0xFFFFC4'u32
   HBAR_ADDR* = 0xFFFFC5'u32
   HORX_ADDR* = 0xFFFFC6'u32
   HOTX_ADDR* = 0xFFFFC7'u32
 
-  HDI08_HCR*  = HCR_ADDR
-  HDI08_HSR*  = HSR_ADDR
+  HDI08_HCR* = HCR_ADDR
+  HDI08_HSR* = HSR_ADDR
   HDI08_HPCR* = HPCR_ADDR
   HDI08_HBAR* = HBAR_ADDR
   HDI08_HORX* = HORX_ADDR
@@ -66,28 +65,28 @@ const
   HCR_HRIE* = 0x000001'u32
   HCR_HTIE* = 0x000002'u32
   HCR_HCIE* = 0x000004'u32
-  HCR_HF2*  = 0x000008'u32
-  HCR_HF3*  = 0x000010'u32
-  HCR_HDM*  = 0x0000E0'u32
+  HCR_HF2* = 0x000008'u32
+  HCR_HF3* = 0x000010'u32
+  HCR_HDM* = 0x0000E0'u32
 
 # HSR Bit Masks
 const
   HSR_HRDF* = 0x000001'u32
   HSR_HTDE* = 0x000002'u32
-  HSR_HCP*  = 0x000004'u32
-  HSR_HF0*  = 0x000008'u32
-  HSR_HF1*  = 0x000010'u32
-  HSR_DMA*  = 0x000080'u32
+  HSR_HCP* = 0x000004'u32
+  HSR_HF0* = 0x000008'u32
+  HSR_HF1* = 0x000010'u32
+  HSR_DMA* = 0x000080'u32
 
 # ICR Bit Masks
 const
   ICR_RREQ* = 0x01'u8
   ICR_TREQ* = 0x02'u8
   ICR_HREC* = 0x04'u8
-  ICR_HF0*  = 0x08'u8
-  ICR_HF1*  = 0x10'u8
-  ICR_HM0*  = 0x20'u8
-  ICR_HM1*  = 0x40'u8
+  ICR_HF0* = 0x08'u8
+  ICR_HF1* = 0x10'u8
+  ICR_HM0* = 0x20'u8
+  ICR_HM1* = 0x40'u8
   ICR_INIT* = 0x80'u8
 
 # CVR Bit Masks
@@ -100,9 +99,9 @@ const
   ISR_RXDF* = 0x01'u8
   ISR_TXDE* = 0x02'u8
   ISR_TRDY* = 0x04'u8
-  ISR_HF2*  = 0x08'u8
-  ISR_HF3*  = 0x10'u8
-  ISR_DMA*  = 0x40'u8
+  ISR_HF2* = 0x08'u8
+  ISR_HF3* = 0x10'u8
+  ISR_DMA* = 0x40'u8
   ISR_HREQ* = 0x80'u8
 
 proc reset*(self: var Hdi08) =
@@ -111,7 +110,7 @@ proc reset*(self: var Hdi08) =
   self.hbar = 0x000080'u32
   self.horx = 0x000000'u32
   self.hotx = 0x000000'u32
-  
+
   self.icr = 0x00'u8
   self.cvr = 0x00'u8
   self.ivr = 0x0F'u8
@@ -140,12 +139,18 @@ proc readDspRegister*(self: var Hdi08, address: uint32): uint32 =
     result = self.hcr
   of HSR_ADDR:
     result = 0'u32
-    if self.hrdf: result = result or HSR_HRDF
-    if self.htde: result = result or HSR_HTDE
-    if self.hcp:  result = result or HSR_HCP
-    if (self.icr and ICR_HF0) != 0: result = result or HSR_HF0
-    if (self.icr and ICR_HF1) != 0: result = result or HSR_HF1
-    if (self.hcr and HCR_HDM) != 0: result = result or HSR_DMA
+    if self.hrdf:
+      result = result or HSR_HRDF
+    if self.htde:
+      result = result or HSR_HTDE
+    if self.hcp:
+      result = result or HSR_HCP
+    if (self.icr and ICR_HF0) != 0:
+      result = result or HSR_HF0
+    if (self.icr and ICR_HF1) != 0:
+      result = result or HSR_HF1
+    if (self.hcr and HCR_HDM) != 0:
+      result = result or HSR_DMA
   of HPCR_ADDR:
     result = self.hpcr
   of HBAR_ADDR:
@@ -172,8 +177,8 @@ proc writeDspRegister*(self: var Hdi08, address: uint32, value: uint32) =
   of HOTX_ADDR:
     self.hotx = val24
     self.rxHigh = uint8((val24 shr 16) and 0xFF'u32)
-    self.rxMid  = uint8((val24 shr 8)  and 0xFF'u32)
-    self.rxLow  = uint8(val24 and 0xFF'u32)
+    self.rxMid = uint8((val24 shr 8) and 0xFF'u32)
+    self.rxLow = uint8(val24 and 0xFF'u32)
     self.htde = false
     self.rxdf = true
   else:
@@ -188,12 +193,18 @@ proc readHostRegister*(self: var Hdi08, offset: uint8): uint8 =
     result = self.cvr
   of ISR_ADDR:
     result = 0'u8
-    if self.rxdf: result = result or ISR_RXDF
-    if self.txde: result = result or ISR_TXDE
-    if self.trdy: result = result or ISR_TRDY
-    if (self.hcr and HCR_HF2) != 0: result = result or ISR_HF2
-    if (self.hcr and HCR_HF3) != 0: result = result or ISR_HF3
-    if (self.hcr and HCR_HDM) != 0: result = result or ISR_DMA
+    if self.rxdf:
+      result = result or ISR_RXDF
+    if self.txde:
+      result = result or ISR_TXDE
+    if self.trdy:
+      result = result or ISR_TRDY
+    if (self.hcr and HCR_HF2) != 0:
+      result = result or ISR_HF2
+    if (self.hcr and HCR_HF3) != 0:
+      result = result or ISR_HF3
+    if (self.hcr and HCR_HDM) != 0:
+      result = result or ISR_DMA
   of IVR_ADDR:
     result = self.ivr
   of RXH_ADDR:
@@ -225,7 +236,8 @@ proc writeHostRegister*(self: var Hdi08, offset: uint8, value: uint8) =
     self.txMid = value
   of TXL_ADDR:
     self.txLow = value
-    self.horx = (uint32(self.txHigh) shl 16) or (uint32(self.txMid) shl 8) or uint32(self.txLow)
+    self.horx =
+      (uint32(self.txHigh) shl 16) or (uint32(self.txMid) shl 8) or uint32(self.txLow)
     self.hrdf = true
     self.txde = false
     self.trdy = false

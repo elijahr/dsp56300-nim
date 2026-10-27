@@ -7,7 +7,6 @@ import dsp56300/[ir, runner, state]
 import dsp56300/asm_parser
 
 suite "Motorola DSP56300 Assembly Text Parser & Assembler":
-
   test "Assemble basic ALU and control flow text":
     let source = """
       ; Simple accumulator addition test
@@ -60,7 +59,7 @@ suite "Motorola DSP56300 Assembly Text Parser & Assembler":
       st.pRam[e.address] = e.word
 
     # Run execution across multiple blocks until RTS
-    for step in 0..<50:
+    for step in 0 ..< 50:
       if st.pc >= 0x200'u32 and st.pRam[st.pc] == 0x00000C'u32: # RTS
         break
       let blk = liftBasicBlock(st, st.pc, maxWords = 10)
@@ -107,7 +106,7 @@ suite "Motorola DSP56300 Assembly Text Parser & Assembler":
     check st.yRam[0x0005] == 0x000003'u32
 
     # Run instructions
-    for step in 0..<10:
+    for step in 0 ..< 10:
       if st.pRam[st.pc] == 0x00000C'u32:
         break
       let blk = liftBasicBlock(st, st.pc, maxWords = 4)
@@ -119,13 +118,16 @@ suite "Motorola DSP56300 Assembly Text Parser & Assembler":
 
   test "Assemble file from disk":
     let tmpFile = getTempDir() / "test_module.asm"
-    writeFile(tmpFile, """
+    writeFile(
+      tmpFile,
+      """
       ORG P:$400
       CLR B
       MOVE #$15, Y0
       ADD Y0, B
       RTS
-    """)
+    """,
+    )
     let res = assembleFile(tmpFile)
     removeFile(tmpFile)
 
@@ -194,7 +196,7 @@ OmniSine_process:
       st.yRam[e.address] = e.word
 
     # Run kernel until RTS
-    for step in 0..<30:
+    for step in 0 ..< 30:
       if st.pRam[st.pc] == 0x00000C'u32: # RTS
         break
       let blk = liftBasicBlock(st, st.pc, maxWords = 4)
@@ -203,4 +205,3 @@ OmniSine_process:
     # Verify kernel updated phase and computed freq_incr
     check st.yRam[0x0040] == 0x012C5F'u32 # freq_incr written to Y:$0040
     check st.yRam[0x0000] == 0x012C5F'u32 # phase updated in Y:$0000
-

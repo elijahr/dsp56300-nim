@@ -6,10 +6,7 @@ import std/unittest
 import dsp56300/[decode_types, decode, ir, runner]
 import "dsp56300/asm.nim"
 
-
-
 suite "DSP56300 Assembler Round-Trip & Execution":
-
   test "Round-trip System & Flow Control Encodings":
     # NOP
     let nopInst = decodeInstruction([asmNop()], 0)
@@ -97,14 +94,14 @@ suite "DSP56300 Assembler Round-Trip & Execution":
     let mpyInst = decodeInstruction([asmMpy(RegId.regX0, RegId.regY0, RegId.regA)], 0)
     check mpyInst.aluOp == AluOp.opMpy
     check (mpyInst.src1Reg == RegId.regX0 and mpyInst.src2Reg == RegId.regY0) or
-          (mpyInst.src1Reg == RegId.regY0 and mpyInst.src2Reg == RegId.regX0)
+      (mpyInst.src1Reg == RegId.regY0 and mpyInst.src2Reg == RegId.regX0)
     check mpyInst.dstReg == RegId.regA
 
     # MAC X1, Y1, B
     let macInst = decodeInstruction([asmMac(RegId.regX1, RegId.regY1, RegId.regB)], 0)
     check macInst.aluOp == AluOp.opMac
     check (macInst.src1Reg == RegId.regX1 and macInst.src2Reg == RegId.regY1) or
-          (macInst.src1Reg == RegId.regY1 and macInst.src2Reg == RegId.regX1)
+      (macInst.src1Reg == RegId.regY1 and macInst.src2Reg == RegId.regX1)
     check macInst.dstReg == RegId.regB
 
     # MACR X0, Y1, A
@@ -169,7 +166,9 @@ suite "DSP56300 Assembler Round-Trip & Execution":
     check movImmShort.parallel.immShort == 0x42
 
     # Indirect memory move: MOVE X:(R0)+, X0
-    let movIndX = decodeInstruction([asmMoveMemInd(MemSpace.memX, false, RegId.regX0, 0, AddrMode.amPostInc)], 0)
+    let movIndX = decodeInstruction(
+      [asmMoveMemInd(MemSpace.memX, false, RegId.regX0, 0, AddrMode.amPostInc)], 0
+    )
     check movIndX.parallel.kind == ParallelMoveKind.pmXMem
     check movIndX.parallel.isWrite == false
     check movIndX.parallel.memReg == RegId.regX0
@@ -178,7 +177,8 @@ suite "DSP56300 Assembler Round-Trip & Execution":
 
     # Dual Parallel move: MPY X0, Y0, A  X:(R0)+, X0  Y:(R4)+, Y0
     let aluPart = asmMpy(RegId.regX0, RegId.regY0, RegId.regA)
-    let dualInstWord = asmParallelXY(aluPart, RegId.regX0, 0, true, RegId.regY0, 4, true)
+    let dualInstWord =
+      asmParallelXY(aluPart, RegId.regX0, 0, true, RegId.regY0, 4, true)
     let dualInst = decodeInstruction([dualInstWord], 0)
     check dualInst.aluOp == AluOp.opMpy
     check dualInst.parallel.kind == ParallelMoveKind.pmXYDual

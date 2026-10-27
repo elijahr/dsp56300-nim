@@ -3,7 +3,9 @@
 
 import state
 
-proc doStart*(s: var Dsp56300State, count: uint32, endAddr: uint32, firstInstPc: uint32) =
+proc doStart*(
+    s: var Dsp56300State, count: uint32, endAddr: uint32, firstInstPc: uint32
+) =
   # 1. First cycle: Push current LA and LC
   s.stackPush(s.la, s.lc)
 
@@ -25,7 +27,7 @@ proc doStart*(s: var Dsp56300State, count: uint32, endAddr: uint32, firstInstPc:
       var dummySsh, dummySsl: uint32
       s.stackPop(dummySsh, dummySsl) # Pop PC/SR
       s.sr = dummySsl
-      s.stackPop(s.la, s.lc)          # Pop LA/LC
+      s.stackPop(s.la, s.lc) # Pop LA/LC
       s.pc = mask24(endAddr)
     else:
       # In 16-bit compatibility mode, 0 means 65536 iterations
@@ -73,8 +75,6 @@ proc checkEndOfLoop*(s: var Dsp56300State, currentInstPc: uint32) =
         # Loop again
         s.lc = s.lc - 1'u32
         s.pc = loopStartPc
-
-
       else:
         # Loop finished normally (LC == 1)
         let loopEndLa = s.la

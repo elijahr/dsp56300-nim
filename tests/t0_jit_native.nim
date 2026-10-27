@@ -5,7 +5,6 @@ import std/unittest
 import dsp56300/[ir, runner, jit_native]
 
 suite "DSP56300 Native JIT Compiler Backend":
-
   test "Native JIT compiles and executes NOP block":
     var state = newDspState()
     state.pc = 0x100'u32

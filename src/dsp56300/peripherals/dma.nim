@@ -3,33 +3,33 @@
 
 type
   DmaMemorySpace* = enum
-    dmsX = 0,
-    dmsY = 1,
-    dmsP = 2,
+    dmsX = 0
+    dmsY = 1
+    dmsP = 2
     dmsReserved = 3
 
   DmaChannel* = object
-    dsr*: uint32          # Source Address Register (24-bit)
-    ddr*: uint32          # Destination Address Register (24-bit)
-    dco*: uint32          # Counter Register (24-bit)
-    dcr*: uint32          # Control Register (24-bit)
-    
+    dsr*: uint32 # Source Address Register (24-bit)
+    ddr*: uint32 # Destination Address Register (24-bit)
+    dco*: uint32 # Counter Register (24-bit)
+    dcr*: uint32 # Control Register (24-bit)
+
     # Preloaded counter values
     dcoPreload*: uint32
     dcolPreload*: uint32
     dcohPreload*: uint32
-    
+
     # Active counter states
     curCount1D*: uint32
     dcolCur*: uint32
     dcohCur*: uint32
-    
+
     interruptAsserted*: bool
 
   DmaController* = object
     channels*: array[6, DmaChannel]
     dor*: array[4, uint32] # DMA Offset Registers 0..3 (24-bit signed offsets)
-    dstr*: uint32          # DMA Status Register
+    dstr*: uint32 # DMA Status Register
 
 # DMA Shared Registers in X Memory
 const
@@ -56,9 +56,9 @@ const
 
 # Address calculation helpers for channel registers
 proc dcrAddress*(ch: int): uint32 =
-  if ch in 0..3:
+  if ch in 0 .. 3:
     result = 0xFFFFEC'u32 - uint32(ch * 4)
-  elif ch in 4..5:
+  elif ch in 4 .. 5:
     result = 0xFFFFDC'u32 - uint32((ch - 4) * 4)
   else:
     result = 0'u32
@@ -81,9 +81,9 @@ proc signExtend24(val: uint32): int64 =
 
 proc reset*(self: var DmaController) =
   self.dstr = 0'u32
-  for i in 0..3:
+  for i in 0 .. 3:
     self.dor[i] = 0'u32
-  for ch in 0..5:
+  for ch in 0 .. 5:
     self.channels[ch].dsr = 0'u32
     self.channels[ch].ddr = 0'u32
     self.channels[ch].dco = 0'u32
@@ -100,12 +100,12 @@ proc newDmaController*(): DmaController =
   result.reset()
 
 proc isInterruptAsserted*(self: DmaController, ch: int): bool =
-  if ch in 0..5:
+  if ch in 0 .. 5:
     return self.channels[ch].interruptAsserted
   return false
 
 proc clearInterrupt*(self: var DmaController, ch: int) =
-  if ch in 0..5:
+  if ch in 0 .. 5:
     self.channels[ch].interruptAsserted = false
 
 proc readRegister*(self: DmaController, address: uint32): uint32 =
@@ -121,11 +121,15 @@ proc readRegister*(self: DmaController, address: uint32): uint32 =
   of DMA_DOR3:
     return self.dor[3] and 0x00FFFFFF'u32
   else:
-    for ch in 0..5:
-      if address == dcrAddress(ch): return self.channels[ch].dcr
-      if address == dcoAddress(ch): return self.channels[ch].dco
-      if address == ddrAddress(ch): return self.channels[ch].ddr
-      if address == dsrAddress(ch): return self.channels[ch].dsr
+    for ch in 0 .. 5:
+      if address == dcrAddress(ch):
+        return self.channels[ch].dcr
+      if address == dcoAddress(ch):
+        return self.channels[ch].dco
+      if address == ddrAddress(ch):
+        return self.channels[ch].ddr
+      if address == dsrAddress(ch):
+        return self.channels[ch].dsr
     return 0'u32
 
 proc writeRegister*(self: var DmaController, address: uint32, value: uint32) =
@@ -135,12 +139,16 @@ proc writeRegister*(self: var DmaController, address: uint32, value: uint32) =
     # Writing to DSTR: write 0 to CHTD bits clears them
     let mask = (val24 and 0x3F'u32)
     self.dstr = self.dstr and (not (mask xor 0x3F'u32))
-  of DMA_DOR0: self.dor[0] = val24
-  of DMA_DOR1: self.dor[1] = val24
-  of DMA_DOR2: self.dor[2] = val24
-  of DMA_DOR3: self.dor[3] = val24
+  of DMA_DOR0:
+    self.dor[0] = val24
+  of DMA_DOR1:
+    self.dor[1] = val24
+  of DMA_DOR2:
+    self.dor[2] = val24
+  of DMA_DOR3:
+    self.dor[3] = val24
   else:
-    for ch in 0..5:
+    for ch in 0 .. 5:
       if address == dcrAddress(ch):
         self.channels[ch].dcr = val24
         # When DE is set from 0 to 1, initialize counter preloads
@@ -173,13 +181,11 @@ type
   ReqChecker* = proc(reqSource: int): bool
 
 proc executeWordTransfer(
-  self: var DmaController,
-  ch: int,
-  reader: MemReader,
-  writer: MemWriter
+    self: var DmaController, ch: int, reader: MemReader, writer: MemWriter
 ): bool =
-  template c: untyped = self.channels[ch]
-  
+  template c(): untyped =
+    self.channels[ch]
+
   let dcr = c.dcr
   let dss = DmaMemorySpace(dcr and 3'u32)
   let dds = DmaMemorySpace((dcr shr 2) and 3'u32)
@@ -237,7 +243,6 @@ proc executeWordTransfer(
         blockComplete = true
         c.dcolCur = c.dcolPreload
         c.dcohCur = c.dcohPreload
-
   else:
     # 1D Mode (Single Counter Mode A)
     if damSrc == 5'u32:
@@ -263,22 +268,26 @@ proc executeWordTransfer(
   return true
 
 proc step*(
-  self: var DmaController,
-  reader: MemReader,
-  writer: MemWriter,
-  reqChecker: ReqChecker
+    self: var DmaController,
+    reader: MemReader,
+    writer: MemWriter,
+    reqChecker: ReqChecker,
 ): bool =
   result = false
 
   # Arbitration: priority levels 3 down to 0
   for prio in countdown(3, 0):
-    for ch in 0..5:
-      template c: untyped = self.channels[ch]
+    for ch in 0 .. 5:
+      template c(): untyped =
+        self.channels[ch]
+
       let de = (c.dcr and (1'u32 shl 23)) != 0
-      if not de: continue
+      if not de:
+        continue
 
       let chPrio = int((c.dcr shr 17) and 3'u32)
-      if chPrio != prio: continue
+      if chPrio != prio:
+        continue
 
       let dtm = (c.dcr shr 19) and 7'u32
       let drs = int((c.dcr shr 11) and 0x1F'u32)
@@ -290,12 +299,10 @@ proc step*(
           discard self.executeWordTransfer(ch, reader, writer)
           inc safety
         return true
-
       elif dtm == 1'u32 or dtm == 5'u32: # Word Transfer (request triggered)
         if reqChecker(drs):
           discard self.executeWordTransfer(ch, reader, writer)
           return true
-
       elif dtm == 0'u32 or dtm == 4'u32: # Block Transfer (request triggered)
         if reqChecker(drs):
           var safety = 0

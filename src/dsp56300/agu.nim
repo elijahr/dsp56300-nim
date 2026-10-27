@@ -3,20 +3,19 @@
 
 import state
 
-type
-  AguMode* = enum
-    AguNoUpdate,      # (Rn)
-    AguPostInc,       # (Rn)+
-    AguPostDec,       # (Rn)-
-    AguPostIncOffset, # (Rn)+Nn
-    AguPostDecOffset, # (Rn)-Nn
-    AguPreDec,        # -(Rn)
-    AguIndexedOffset  # (Rn+Nn)
+type AguMode* = enum
+  AguNoUpdate # (Rn)
+  AguPostInc # (Rn)+
+  AguPostDec # (Rn)-
+  AguPostIncOffset # (Rn)+Nn
+  AguPostDecOffset # (Rn)-Nn
+  AguPreDec # -(Rn)
+  AguIndexedOffset # (Rn+Nn)
 
 proc bitReverse24*(v: uint32): uint32 {.inline.} =
   var x = v and 0x00FFFFFF'u32
   var r = 0'u32
-  for i in 0..23:
+  for i in 0 .. 23:
     r = (r shl 1) or (x and 1'u32)
     x = x shr 1
   return r
@@ -66,14 +65,14 @@ proc updateAddress*(rnVal: uint32, delta: int32, mnVal: uint32): uint32 =
     elif newAddr < int64(lower):
       newAddr = newAddr + int64(m)
 
-
-
     return mask24(uint32(newAddr))
 
   # Fallback to linear
   return mask24(uint32(int32(rnVal) + delta))
 
-proc aguCalculateEffectiveAddress*(s: var Dsp56300State, regIdx: int, mode: AguMode): uint32 =
+proc aguCalculateEffectiveAddress*(
+    s: var Dsp56300State, regIdx: int, mode: AguMode
+): uint32 =
   let rVal = s.r[regIdx]
   let nVal = signExtend24(s.n[regIdx])
   let mVal = s.m[regIdx]
@@ -81,28 +80,22 @@ proc aguCalculateEffectiveAddress*(s: var Dsp56300State, regIdx: int, mode: AguM
   case mode
   of AguNoUpdate:
     return rVal
-
   of AguPostInc:
     s.r[regIdx] = updateAddress(rVal, 1, mVal)
     return rVal
-
   of AguPostDec:
     s.r[regIdx] = updateAddress(rVal, -1, mVal)
     return rVal
-
   of AguPostIncOffset:
     s.r[regIdx] = updateAddress(rVal, nVal, mVal)
     return rVal
-
   of AguPostDecOffset:
     s.r[regIdx] = updateAddress(rVal, -nVal, mVal)
     return rVal
-
   of AguPreDec:
     let updated = updateAddress(rVal, -1, mVal)
     s.r[regIdx] = updated
     return updated
-
   of AguIndexedOffset:
     # (Rn + Nn) without modifying Rn
     return updateAddress(rVal, nVal, mVal)
